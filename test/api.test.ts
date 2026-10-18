@@ -5,7 +5,7 @@ import { fixture, freshBase, respond, stubFetch } from './helpers';
 const TIP =
   'Compared with the combined value of the coins CoinFinHub lists. This is analysis of past prices, not a prediction or financial advice.';
 const PEG_TIP =
-  'Tether is a stablecoin: its issuer aims to keep it worth one US dollar. This is analysis of past prices, not a prediction or financial advice.';
+  'Tether has stayed within 2% of one US dollar all week, as a dollar stablecoin is built to. This is analysis of past prices, not a prediction or financial advice.';
 
 async function answerFor(name: string, coin = 'bitcoin'): Promise<Answer> {
   stubFetch(() => respond(name));

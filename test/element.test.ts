@@ -167,7 +167,7 @@ describe('states', () => {
     const element = await mount({ coin: 'tether', api: freshBase() });
     expect(context(element).textContent).toContain('Tether holds its $1 peg.');
     expect(part(element, '.cfh-tip').textContent).toBe(
-      'Tether is a stablecoin: its issuer aims to keep it worth one US dollar. This is analysis of past prices, not a prediction or financial advice.',
+      'Tether has stayed within 2% of one US dollar all week, as a dollar stablecoin is built to. This is analysis of past prices, not a prediction or financial advice.',
     );
   });
 
