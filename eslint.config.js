@@ -9,6 +9,7 @@ const browser = {
   fetch: 'readonly',
   location: 'readonly',
   navigator: 'readonly',
+  Request: 'readonly',
   Response: 'readonly',
   setTimeout: 'readonly',
   URL: 'readonly',

@@ -1,5 +1,5 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["src/coinfinhub-price.ts", "scripts/*.mjs", "test/browser/servers.mjs", "docs/demo.js"],
+  "entry": ["src/coinfinhub-price.ts", "scripts/*.mjs", "docs/demo.js"],
   "project": ["src/**/*.ts", "scripts/**/*.mjs", "test/**/*.{ts,mjs}", "docs/**/*.js"]
 }

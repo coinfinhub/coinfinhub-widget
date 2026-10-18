@@ -1,0 +1,223 @@
+/* The demo page's own styles. The widget brings its own; nothing here reaches inside it. */
+:root {
+  --cfh-demo-bg: #f7f7fa;
+  --cfh-demo-surface: #ffffff;
+  --cfh-demo-code: #fafafc;
+  --cfh-demo-ink: #131840;
+  --cfh-demo-ink-2: #3b4066;
+  --cfh-demo-line: #e8e8ef;
+  --cfh-demo-accent: #2c3c9e;
+  --cfh-demo-on-accent: #ffffff;
+  --cfh-demo-gold: #e1af40;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --cfh-demo-bg: #121117;
+    --cfh-demo-surface: #1a1920;
+    --cfh-demo-code: #212028;
+    --cfh-demo-ink: #f1ece2;
+    --cfh-demo-ink-2: #d0c9bb;
+    --cfh-demo-line: #2f2d37;
+    --cfh-demo-accent: #b6b8f7;
+    --cfh-demo-on-accent: #131840;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--cfh-demo-bg);
+  color: var(--cfh-demo-ink);
+  font: 16px/1.55 Inter, system-ui, sans-serif;
+}
+
+a {
+  color: var(--cfh-demo-accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--cfh-demo-accent);
+  outline-offset: 2px;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: clamp(1.6rem, 1.3rem + 1.2vw, 2.2rem);
+  line-height: 1.2;
+}
+
+h2 {
+  margin: 0 0 12px;
+  font-size: 1.25rem;
+}
+
+section {
+  margin: 40px 0;
+}
+
+figure {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+figcaption {
+  font-size: 0.9rem;
+  color: var(--cfh-demo-ink-2);
+}
+
+.cfh-demo-wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.cfh-demo-head {
+  padding: 40px 0 28px;
+  border-bottom: 1px solid var(--cfh-demo-line);
+  border-top: 4px solid var(--cfh-demo-gold);
+  background: var(--cfh-demo-surface);
+}
+
+.cfh-demo-lead {
+  max-width: 46rem;
+  margin: 0 0 8px;
+  color: var(--cfh-demo-ink-2);
+}
+
+.cfh-demo-links {
+  margin: 0;
+}
+
+.cfh-demo-note {
+  margin: 8px 0;
+  font-size: 0.9rem;
+  color: var(--cfh-demo-ink-2);
+}
+
+.cfh-demo-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-bottom: 16px;
+}
+
+.cfh-demo-form label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.cfh-demo-form input,
+.cfh-demo-form select {
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--cfh-demo-ink-2);
+  border-radius: 10px;
+  background: var(--cfh-demo-surface);
+  color: var(--cfh-demo-ink);
+  font: inherit;
+  font-weight: 400;
+}
+
+.cfh-demo-live {
+  max-width: 480px;
+}
+
+.cfh-demo-code {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  border: 1px solid var(--cfh-demo-line);
+  border-radius: 12px;
+  background: var(--cfh-demo-code);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.cfh-demo-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cfh-demo-actions button {
+  min-height: 40px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--cfh-demo-accent);
+  color: var(--cfh-demo-on-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cfh-demo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px 20px;
+}
+
+.cfh-demo-themes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.cfh-demo-panel {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--cfh-demo-line);
+  border-radius: 16px;
+}
+
+.cfh-demo-light {
+  background: #f7f7fa;
+}
+
+.cfh-demo-dark {
+  background: #121117;
+}
+
+.cfh-demo-widths {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.cfh-demo-w200 {
+  width: 200px;
+}
+
+.cfh-demo-w320 {
+  width: 320px;
+  max-width: 100%;
+}
+
+.cfh-demo-w480 {
+  width: 480px;
+  max-width: 100%;
+}
+
+.cfh-demo-foot {
+  padding: 24px 0 40px;
+  border-top: 1px solid var(--cfh-demo-line);
+  font-size: 0.9rem;
+  color: var(--cfh-demo-ink-2);
+}
