@@ -159,13 +159,16 @@ describe('states', () => {
     expect(part(element, '.cfh-price').textContent).toBe('$0.0731');
     expect(shown(change(element))).toBe(false);
     expect(shown(context(element))).toBe(false);
-    expect(note(element).textContent).toBe('No trades since 12 Oct: this is the last price');
+    expect(note(element).textContent).toBe('No trades since 12 Oct 2026: this is the last price');
   });
 
-  it("shows a stablecoin's peg sentence", async () => {
+  it("shows a stablecoin's peg sentence, with what a peg is in its tip", async () => {
     always('ok-stablecoin');
     const element = await mount({ coin: 'tether', api: freshBase() });
     expect(context(element).textContent).toContain('Tether holds its $1 peg.');
+    expect(part(element, '.cfh-tip').textContent).toBe(
+      'Tether is a stablecoin: its issuer aims to keep it worth one US dollar. This is analysis of past prices, not a prediction or financial advice.',
+    );
   });
 
   it('falls back safely on unknown values', async () => {

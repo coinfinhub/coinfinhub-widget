@@ -4,6 +4,8 @@ import { fixture, freshBase, respond, stubFetch } from './helpers';
 
 const TIP =
   'Compared with the combined value of the coins CoinFinHub lists. This is analysis of past prices, not a prediction or financial advice.';
+const PEG_TIP =
+  'Tether is a stablecoin: its issuer aims to keep it worth one US dollar. This is analysis of past prices, not a prediction or financial advice.';
 
 async function answerFor(name: string, coin = 'bitcoin'): Promise<Answer> {
   stubFetch(() => respond(name));
@@ -84,7 +86,7 @@ describe('a 200 answer', () => {
     const price = await priceFor('ok-stopped', 'oldcoin');
     expect(price.change).toBeNull();
     expect(price.context).toBeNull();
-    expect(price.note).toBe('No trades since 12 Oct: this is the last price');
+    expect(price.note).toBe('No trades since 12 Oct 2026: this is the last price');
   });
 
   it('drops a change the server sends for a stopped coin anyway', async () => {
@@ -97,8 +99,8 @@ describe('a 200 answer', () => {
     expect(answer.ok && answer.price.change).toBeNull();
   });
 
-  it('keeps the stablecoin sentence', async () => {
-    expect((await priceFor('ok-stablecoin', 'tether')).context).toBe('Tether holds its $1 peg.');
+  it('keeps the stablecoin sentence and its tip', async () => {
+    expect(await priceFor('ok-stablecoin', 'tether')).toMatchObject({ context: 'Tether holds its $1 peg.', contextTip: PEG_TIP });
   });
 
   it('passes unknown values through and ignores unknown fields', async () => {
