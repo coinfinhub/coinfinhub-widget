@@ -1,0 +1,1 @@
+{ "error": { "status": 503, "code": "widget_off", "message": "The widget is switched off right now.", "retryAfter": 300 } }

@@ -1,0 +1,21 @@
+{
+  "coin": { "slug": "bitcoin", "name": "<img src=x onerror=alert(1)>", "symbol": "\"><svg onload=alert(1)>" },
+  "currency": "USD",
+  "price": 1,
+  "change24h": 1,
+  "trading": "listed",
+  "context": "<script>alert(1)</script>",
+  "updatedAt": "2026-10-18T09:41:03.000Z",
+  "url": "javascript:alert(1)",
+  "rate": null,
+  "display": {
+    "price": "<b>$1.00</b>",
+    "change": "<i>+1.00%</i>",
+    "direction": "__proto__",
+    "contextLabel": "<u>Today</u>",
+    "contextTip": "<a href=\"https://example.com\">tip</a>",
+    "age": null,
+    "note": "<em>note</em>",
+    "rate": "<style>*{display:none}</style>"
+  }
+}

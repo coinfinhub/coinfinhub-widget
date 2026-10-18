@@ -1,0 +1,22 @@
+{
+  "coin": { "slug": "bitcoin", "name": "Bitcoin", "symbol": "BTC" },
+  "currency": "USD",
+  "price": 86091.97,
+  "change24h": -1.34,
+  "trading": "listed",
+  "context": "Bitcoin slips 1.3%, in line with the market.",
+  "updatedAt": "2026-10-18T09:41:03.000Z",
+  "priceChangedAt": "2026-10-18T09:40:47.000Z",
+  "url": "https://www.coinfinhub.com/price/bitcoin",
+  "rate": null,
+  "display": {
+    "price": "$86,091.97",
+    "change": "−1.34%",
+    "direction": "down",
+    "contextLabel": "Today",
+    "contextTip": "Compared with the combined value of the coins CoinFinHub lists. This is analysis of past prices, not a prediction or financial advice.",
+    "age": null,
+    "note": null,
+    "rate": null
+  }
+}

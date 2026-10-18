@@ -1,0 +1,22 @@
+{
+  "coin": { "slug": "quietcoin", "name": "Quietcoin", "symbol": "QUIET" },
+  "currency": "GBP",
+  "price": 0.8612,
+  "change24h": 0,
+  "trading": "listed",
+  "context": "Quietcoin holds still while the market slips 1.3%.",
+  "updatedAt": "2026-10-18T09:41:03.000Z",
+  "priceChangedAt": "2026-10-18T02:38:55.000Z",
+  "url": "https://www.coinfinhub.com/price/quietcoin",
+  "rate": { "source": "ECB", "basis": "derived from EUR reference rates", "date": "2026-10-16", "perUsd": 0.7461 },
+  "display": {
+    "price": "£0.8612",
+    "change": "0.00%",
+    "direction": "flat",
+    "contextLabel": "Today",
+    "contextTip": "Compared with the combined value of the coins CoinFinHub lists. This is analysis of past prices, not a prediction or financial advice.",
+    "age": null,
+    "note": "Price last changed 7 hours ago",
+    "rate": "USD rate derived from ECB data"
+  }
+}

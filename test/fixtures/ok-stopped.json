@@ -1,0 +1,22 @@
+{
+  "coin": { "slug": "oldcoin", "name": "Oldcoin", "symbol": "OLD" },
+  "currency": "USD",
+  "price": 0.0731,
+  "change24h": null,
+  "trading": "stopped",
+  "context": null,
+  "updatedAt": "2026-10-18T09:41:03.000Z",
+  "priceChangedAt": "2026-10-12T16:02:11.000Z",
+  "url": "https://www.coinfinhub.com/price/oldcoin",
+  "rate": null,
+  "display": {
+    "price": "$0.0731",
+    "change": null,
+    "direction": null,
+    "contextLabel": "Today",
+    "contextTip": "Compared with the combined value of the coins CoinFinHub lists. This is analysis of past prices, not a prediction or financial advice.",
+    "age": null,
+    "note": "No trades since 12 Oct: this is the last price",
+    "rate": null
+  }
+}

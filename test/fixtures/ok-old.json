@@ -1,0 +1,22 @@
+{
+  "coin": { "slug": "ethereum", "name": "Ethereum", "symbol": "ETH" },
+  "currency": "EUR",
+  "price": 2741.37,
+  "change24h": 2.46,
+  "trading": "listed",
+  "context": "Ethereum gains 2.5%, ahead of the market.",
+  "updatedAt": "2026-10-18T09:16:03.000Z",
+  "priceChangedAt": "2026-10-18T09:15:41.000Z",
+  "url": "https://www.coinfinhub.com/price/ethereum",
+  "rate": { "source": "ECB", "basis": "derived from EUR reference rates", "date": "2026-10-16", "perUsd": 0.8573 },
+  "display": {
+    "price": "€2,741.37",
+    "change": "+2.46%",
+    "direction": "up",
+    "contextLabel": "Today",
+    "contextTip": "Compared with the combined value of the coins CoinFinHub lists. This is analysis of past prices, not a prediction or financial advice.",
+    "age": "Updated 25 min ago",
+    "note": null,
+    "rate": "USD rate derived from ECB data"
+  }
+}
