@@ -31,8 +31,8 @@ export const dark: typeof light = {
   gold: '#e1af40',
   'tip-bg': '#f1ece2',
   'tip-ink': '#131840',
-  up: '#0da06f',
-  down: '#e46444',
+  up: '#28ad7b',
+  down: '#f37251',
   flat: '#9a98ab',
 };
 

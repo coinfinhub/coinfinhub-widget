@@ -15,7 +15,7 @@
 Paste this where the price should appear:
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@1.0.0/dist/coinfinhub-price.js" integrity="sha384-kistrLAWcGrPDlmTrdZbIRoj4BdL7KxRu1/ygBKYC6qx3kQ9R+h911ZrDnAoPrUh" crossorigin="anonymous"></script>
+<script type="module" src="https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@1.0.0/dist/coinfinhub-price.js" integrity="sha384-FrZCDsGOc2NzaRF5IeeRF9oqaS5W8lGelYTR2b7VxuGwj3etd/2uoFh17ZHtr48D" crossorigin="anonymous"></script>
 <coinfinhub-price coin="bitcoin" currency="USD" theme="auto"><a href="https://www.coinfinhub.com/price/bitcoin" target="_blank" rel="nofollow noopener">CoinFinHub</a></coinfinhub-price>
 ```
 
