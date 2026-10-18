@@ -1,0 +1,53 @@
+{
+  "name": "coinfinhub-widget",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A small, dependency-free web component that shows a coin's price from CoinFinHub on any website.",
+  "license": "MIT",
+  "author": "Rudranx Digital Labs",
+  "homepage": "https://www.coinfinhub.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/coinfinhub/coinfinhub-widget.git"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./dist/coinfinhub-price.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": true,
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json && tsc -p test/tsconfig.json",
+    "lint": "eslint .",
+    "knip": "knip",
+    "css:check": "node scripts/unused-css.mjs",
+    "test": "vitest run",
+    "test:browser": "playwright test",
+    "size": "node scripts/size.mjs",
+    "sri": "node scripts/sri.mjs",
+    "serve": "node test/browser/servers.mjs",
+    "check": "npm run typecheck && npm run lint && npm run knip && npm run css:check && npm test && npm run build && npm run size && npm run sri -- --check"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.0",
+    "@types/node": "24.19.2",
+    "esbuild": "0.28.2",
+    "eslint": "10.12.0",
+    "happy-dom": "21.0.3",
+    "knip": "6.40.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.2",
+    "vitest": "5.0.3"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}

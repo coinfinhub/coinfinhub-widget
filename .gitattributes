@@ -1,0 +1,5 @@
+# LF everywhere, so a build on Windows matches the one CI makes on Linux.
+* text=auto eol=lf
+
+# The built file is served by jsDelivr and pinned with SRI: git must never touch its bytes.
+dist/** -text
