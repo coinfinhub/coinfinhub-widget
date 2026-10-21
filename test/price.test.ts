@@ -133,6 +133,16 @@ describe('states', () => {
     expect(footText(element)).toBe('USD rate derived from ECB data');
   });
 
+  it('shows a price in another currency to the cent of the full product, as the site does', async () => {
+    // coins-inr-exact, a day after the other fixtures: 84548.56 × 88.12 = 7450419.1072, sent unrounded.
+    // Cut to 8 significant digits (7450419.1) it would read ₹74,50,419.10.
+    vi.setSystemTime(new Date('2026-10-07T10:55:31Z'));
+    always('coins-inr-exact');
+    const element = await price({ coin: 'bitcoin', currency: 'inr', api: freshBase() });
+    expect(part(element, '.cfh-price').textContent).toBe('₹74,50,419.11');
+    expect(footText(element)).toBe('USD rate derived from ECB data');
+  });
+
   it('shows a badge for little trading', async () => {
     stubFetch((url) => only(['coins-usd'], url));
     const element = await price({ coin: 'quietcoin', api: freshBase() });
@@ -153,6 +163,17 @@ describe('states', () => {
     const element = await price({ coin: 'bitcoin', api: freshBase() });
     expect(change(element).textContent).toBe('• 0.00% 24h');
     expect(change(element).className).toBe('cfh-chg cfh-flat');
+  });
+
+  it('rounds the change once, as the site does: 0.00495 is flat and 1.2349999 is +1.23%', async () => {
+    // coins-change sends them as stored; rounded to 4 decimals first (0.005, 1.235) they would read +0.01% and +1.24%.
+    stubFetch((url) => only(['coins-change'], url));
+    const flat = await price({ coin: 'flatcoin', api: freshBase() });
+    expect(change(flat).textContent).toBe('• 0.00% 24h');
+    expect(change(flat).className).toBe('cfh-chg cfh-flat');
+    const edge = await price({ coin: 'edgecoin', api: freshBase() });
+    expect(change(edge).textContent).toBe('▲ +1.23% 24h');
+    expect(change(edge).className).toBe('cfh-chg cfh-up');
   });
 
   it('shows a stopped coin with its badge and no change', async () => {

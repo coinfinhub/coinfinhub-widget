@@ -1,0 +1,25 @@
+{
+  "currency": "INR",
+  "now": "2026-10-07T10:55:31Z",
+  "coins": [
+    {
+      "slug": "bitcoin",
+      "name": "Bitcoin",
+      "symbol": "BTC",
+      "logo": "https://cdn.coinfinhub.com/coin-logos/small/bitcoin.png?v=1791187200",
+      "rank": 1,
+      "price": 7450419.1072,
+      "change24h": -0.009326364692217,
+      "trading": "listed",
+      "stoppedAt": null,
+      "updatedAt": "2026-10-07T10:55:01Z",
+      "url": "https://www.coinfinhub.com/price/bitcoin"
+    }
+  ],
+  "missing": [],
+  "rate": {
+    "source": "ECB",
+    "date": "2026-10-06",
+    "perUsd": 88.12
+  }
+}

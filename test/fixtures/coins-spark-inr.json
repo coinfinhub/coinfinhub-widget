@@ -8,8 +8,8 @@
       "symbol": "ETH",
       "logo": null,
       "rank": 2,
-      "price": 261732.08,
-      "change24h": -0.0136,
+      "price": 261732.08225075997,
+      "change24h": -0.013626587313291652,
       "trading": "listed",
       "stoppedAt": null,
       "updatedAt": "2026-10-06T10:55:01Z",
@@ -24,7 +24,7 @@
   "missing": [],
   "rate": {
     "source": "ECB",
-    "date": "2026-10-16",
+    "date": "2026-10-05",
     "perUsd": 96.405436
   }
 }

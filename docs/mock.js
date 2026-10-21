@@ -100,7 +100,8 @@ export async function answer(url, n, load) {
       symbol: usd.symbol,
       logo: logo(usd.slug) ?? usd.logo,
       rank: usd.rank,
-      price: fixed?.price ?? (perUsd === 1 ? usd.price : Number((usd.price * perUsd).toPrecision(8))),
+      // Unrounded, as the endpoint sends a price in another currency: the widget rounds it once, as the site does.
+      price: fixed?.price ?? usd.price * perUsd,
       change24h: usd.change24h,
       trading: usd.trading,
       stoppedAt: usd.stoppedAt,
