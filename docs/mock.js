@@ -28,13 +28,13 @@ const money = (value, currency) =>
     }).format(value),
   );
 
-/** A made-up 7-day line for coins the fixtures have none for: 56 points ending at the price. */
-function week(slug, price, change) {
+/** A made-up 7-day line for coins the fixtures have none for: as many points as the fixture's, ending at the price. */
+function week(slug, price, change, length) {
   const seed = [...slug].reduce((sum, char) => sum + char.charCodeAt(0), 0);
   const start = price * (1 - ((change ?? 0) * 1.7 + ((seed % 7) - 3)) / 100);
-  return Array.from({ length: 56 }, (_, i) => {
+  return Array.from({ length }, (_, i) => {
     const wave = Math.sin(i * 0.8 + seed) * 0.012 + Math.sin(i * 0.21 + seed / 3) * 0.008;
-    return Number((i === 55 ? price : (start + (price - start) * (i / 55)) * (1 + wave)).toPrecision(6));
+    return Number((i === length - 1 ? price : (start + (price - start) * (i / (length - 1))) * (1 + wave)).toPrecision(6));
   });
 }
 
@@ -90,7 +90,7 @@ export async function answer(url, n, load) {
     delete coin.display;
     delete coin.sparkline7d;
     if (spark) {
-      const line = lines.get(usd.slug) ?? week(usd.slug, usd.price, usd.change24h);
+      const line = lines.get(usd.slug) ?? week(usd.slug, usd.price, usd.change24h, [...lines.values()][0]?.length ?? 2);
       coin.sparkline7d = line.map((value) => (typeof value === 'number' ? Number((value * perUsd).toPrecision(6)) : value));
     }
     // display last, as the endpoint orders its fields.

@@ -147,7 +147,7 @@ test('widgets on screen together share one call, whatever they show', async ({ p
   await expect(page.locator('coinfinhub-list .cfh-item')).toHaveCount(2);
   await expect(page.locator('coinfinhub-ticker .cfh-run').first().locator('.cfh-tick')).toHaveCount(5);
   expect((await calls(request, ns)).sort()).toEqual(
-    ['?ids=bitcoin,ethereum,tether&currency=USD', '?top=10&currency=USD', '?ids=bitcoin&currency=INR'].sort(),
+    ['?ids=bitcoin,ethereum,tether&currency=USD', '?top=20&currency=USD', '?ids=bitcoin&currency=INR'].sort(),
   );
 });
 
@@ -292,6 +292,41 @@ test('the ticker loops, pauses on hover and focus, and stands still with reduced
   await view.focus();
   await page.keyboard.press('ArrowRight');
   await expect.poll(() => view.evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
+});
+
+test('the ticker repeats its coins to fill a wide view, at the same speed as a narrow one', async ({ page }) => {
+  await page.goto('/blank.html');
+  await add(page, [
+    ['coinfinhub-ticker', { coins: 'bitcoin', api: API, style: 'width: 1200px' }],
+    ['coinfinhub-ticker', { coins: 'bitcoin', api: API, style: 'width: 300px' }],
+  ]);
+  const tickers = page.locator('coinfinhub-ticker');
+  await expect(tickers.nth(1).locator('.cfh-tick').first()).toBeVisible();
+  const measure = (index: number) =>
+    tickers.nth(index).evaluate((ticker) => {
+      const root = ticker.shadowRoot;
+      const view = root?.querySelector<HTMLElement>('.cfh-view');
+      const track = root?.querySelector<HTMLElement>('.cfh-track');
+      const runs = [...(root?.querySelectorAll<HTMLElement>('.cfh-run') ?? [])];
+      return {
+        view: view?.clientWidth ?? 0,
+        track: track?.scrollWidth ?? 0,
+        run: runs[0]?.offsetWidth ?? 0,
+        runs: runs.length,
+        hidden: runs.slice(1).every((run) => run.getAttribute('aria-hidden') === 'true' && run.inert),
+        seconds: parseFloat(track ? getComputedStyle(track).animationDuration : '0'),
+      };
+    });
+  await expect.poll(async () => (await measure(0)).runs).toBeGreaterThan(2);
+  const wide = await measure(0);
+  const narrow = await measure(1);
+  // Half the track always covers the view, so no blank band scrolls through.
+  expect(wide.track / 2).toBeGreaterThanOrEqual(wide.view);
+  expect(narrow.track / 2).toBeGreaterThanOrEqual(narrow.view);
+  expect(wide.hidden && narrow.hidden).toBe(true);
+  // The same speed in both: the half-track's width over the loop's duration.
+  const speed = ({ track, seconds }: { track: number; seconds: number }) => track / 2 / seconds;
+  expect(Math.abs(speed(wide) - speed(narrow))).toBeLessThan(speed(narrow) / 5);
 });
 
 test('the converter works out either field as the visitor types, and changes currency', async ({ page }) => {
