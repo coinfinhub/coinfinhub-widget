@@ -76,7 +76,7 @@ export class CoinfinhubTicker extends Widget {
     const shift = half * width;
     if (Math.abs(shift - this.#shift) > this.#shift / 10) {
       this.#shift = shift;
-      this.#track.style.animationDuration = `${String(Math.max(1, Math.round(shift / SPEED)))}s`;
+      this.ownRules(`.cfh-track{animation-duration:${String(Math.max(1, Math.round(shift / SPEED)))}s}`);
     }
   }
 }

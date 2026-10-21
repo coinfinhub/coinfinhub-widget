@@ -61,8 +61,13 @@ export abstract class Widget extends HTMLElement {
   readonly #rate: HTMLSpanElement;
   /** The narrowest width="…" may make it. */
   readonly #least: number;
-  /** This widget's own sheet, beside the shared one: its width, so the host's styles are never touched. */
+  /**
+   * This widget's own sheet, beside the shared one: its width and a subclass's rules (the ticker's speed), so the
+   * host's styles are never touched and no inline style is written (WebKit refuses those under a strict CSP).
+   */
   readonly #own = new CSSStyleSheet();
+  #width = '';
+  #rules = '';
 
   #live = false;
   #key = '';
@@ -174,11 +179,18 @@ export abstract class Widget extends HTMLElement {
     this.#busy = false;
   }
 
+  /** Rules of a subclass's own, in this widget's sheet after its width. */
+  protected ownRules(css: string): void {
+    this.#rules = css;
+    this.#own.replaceSync(this.#width + this.#rules);
+  }
+
   attributeChangedCallback(name: string, before: string | null, after: string | null): void {
     if (name === 'width') {
       // A number of CSS pixels, never below the least; anything else, or 0, fills the container.
       const width = Math.round(Number(after));
-      this.#own.replaceSync(width > 0 && width < 1e5 ? `:host{max-width:${String(Math.max(this.#least, width))}px}` : '');
+      this.#width = width > 0 && width < 1e5 ? `:host{max-width:${String(Math.max(this.#least, width))}px}` : '';
+      this.#own.replaceSync(this.#width + this.#rules);
     } else if (this.#live && before !== after) {
       this.#restart();
     }

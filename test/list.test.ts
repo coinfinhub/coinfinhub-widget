@@ -215,7 +215,12 @@ describe('<coinfinhub-ticker>', () => {
       resized();
     };
     const runs = () => parts(ticker, '.cfh-run');
-    const duration = () => part(ticker, '.cfh-track').style.animationDuration;
+    // In the widget's own sheet, never an inline style (WebKit refuses those under a strict CSP).
+    const duration = () => {
+      const own = [...(ticker.shadowRoot?.adoptedStyleSheets[1]?.cssRules ?? [])].map((rule) => rule.cssText).join('');
+      expect(part(ticker, '.cfh-track').getAttribute('style')).toBeNull();
+      return /animation-duration:\s*(\d+s)/.exec(own)?.[1];
+    };
 
     // Two coins, 300 px, in a 1,000 px view: 4 runs make the half that covers it, 8 in all; 1,200 px at 45 px/s.
     size(1000, 300);
