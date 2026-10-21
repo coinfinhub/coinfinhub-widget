@@ -1,6 +1,6 @@
 // A mock of the widgets' endpoint, GET /v1/coins (https://widgets.coinfinhub.com/v1/coins), for the demo page
-// and the browser tests. It answers from test/fixtures/*.json: illustrative examples of the contract, not real
-// prices, read 30 seconds before each answer, so the samples look live.
+// and the browser tests. It answers from test/fixtures/*.json, the API service's contract answers: illustrative
+// examples, not real prices, read 30 seconds before each answer, so the samples look live.
 //
 // The first path segment, if any, picks a scenario, so a page can show every state at once (widgets with
 // a different api base never share a call):
@@ -12,9 +12,9 @@
 //   anything else, such as /t-1234/, answers normally: tests use it to count their own calls.
 // Coins: those in the fixtures (coins-top, coins-usd), among them quietcoin (little trading) and haltcoin
 // (no trades), a few more real coins of the demo's own (SAMPLES), and hostile; any other well-formed slug
-// is missing. Real coins carry their logo on cdn.coinfinhub.com, as the endpoint sends it. Currencies:
-// USD and INR from the fixtures, the others worked out with sample rates; CHF has no rate, to show
-// rate_unavailable.
+// is missing. Real coins carry their logo on cdn.coinfinhub.com, as the endpoint sends it: ?v= is the logo
+// copy's time in seconds, here the fixtures' Bitcoin one for every coin. Currencies: USD and INR from the
+// fixtures, the others worked out with sample rates; CHF has no rate, to show rate_unavailable.
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'INR', 'AUD', 'CHF'];
 const RATES = { EUR: 0.8573, GBP: 0.7461, JPY: 150.31, CNY: 7.1234, AUD: 1.5172 };
@@ -23,7 +23,7 @@ const ROUTE = /^\/(?:([^/]+)\/)?v1\/coins$/;
 const BANK = ['coins-top', 'coins-usd', 'coins-hostile'];
 /** Real coins, which have a logo on CoinFinHub. */
 const REAL = new Set(['bitcoin', 'ethereum', 'bnb', 'xrp', 'usdc', 'tether', 'solana', 'tron', 'dogecoin', 'cardano', 'chainlink']);
-const logo = (slug) => (REAL.has(slug) ? `https://cdn.coinfinhub.com/coin-logos/small/${slug}.png?v=1` : null);
+const logo = (slug) => (REAL.has(slug) ? `https://cdn.coinfinhub.com/coin-logos/small/${slug}.png?v=1791187200` : null);
 /** The demo's own sample coins, ranked after the fixtures' five (illustrative prices). */
 const SAMPLES = [
   ['solana', 'Solana', 'SOL', 6, 162.08, 2.31],
@@ -114,5 +114,5 @@ export async function answer(url, n, load) {
     return coin;
   });
   const rate = currency === 'USD' ? null : currency === 'INR' ? inr.rate : { ...inr.rate, perUsd };
-  return { status: 200, body: { currency, coins, missing, rate, now: iso(at) } };
+  return { status: 200, body: { currency, now: iso(at), coins, missing, rate } };
 }

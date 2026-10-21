@@ -179,14 +179,14 @@ describe('a 200 answer', () => {
           slug: 'bitcoin',
           name: 'Bitcoin',
           symbol: 'BTC',
-          logo: 'https://cdn.coinfinhub.com/coin-logos/small/bitcoin.png?v=1',
+          logo: 'https://cdn.coinfinhub.com/coin-logos/small/bitcoin.png?v=1791187200',
           price: '$86,091.97',
           value: 86091.97,
           change: '−0.01%',
           direction: 'down',
           badge: null,
           url: 'https://www.coinfinhub.com/price/bitcoin',
-          updatedAt: Date.parse('2026-10-06T10:55:01.352Z'),
+          updatedAt: Date.parse('2026-10-06T10:55:01Z'),
           spark: null,
         },
         expect.objectContaining({ slug: 'ethereum', logo: null, price: '$2,714.91', direction: 'down', change: '−0.01%' }),
@@ -238,9 +238,33 @@ describe('a 200 answer', () => {
     });
   });
 
+  it("gives a coin asked for by its old name under that name, linking to the coin's page as it is now", async () => {
+    const mock = stubFetch(() => respond('coins-alias'));
+    const base = freshBase();
+    const [old, current, gone] = await Promise.all([
+      getCoins(base, 'USD', false, ['binance-coin']),
+      getCoins(base, 'USD', false, ['bnb']),
+      getCoins(base, 'USD', false, ['old-deadcoin']),
+    ]);
+    expect(queries(mock)).toEqual(['ids=binance-coin,bnb,old-deadcoin&currency=USD']);
+    expect([old, current].map((answer) => answer.ok && answer.coins.map(({ slug, name, url }) => [slug, name, url]))).toEqual([
+      [['binance-coin', 'BNB', 'https://www.coinfinhub.com/price/bnb']],
+      [['bnb', 'BNB', 'https://www.coinfinhub.com/price/bnb']],
+    ]);
+    // An old name whose coin is gone comes back missing.
+    expect(!gone.ok && gone.code).toBe('unknown_coin');
+  });
+
   it('reads the 7-day line', async () => {
     const coin = await firstCoin('coins-spark', ['bitcoin'], true);
     expect(coin.spark).toEqual(coinOf('coins-spark', 'bitcoin').sparkline7d);
+  });
+
+  it('reads the 7-day line in another currency, as sent, with the rate label', async () => {
+    const answer = await coinsFor('coins-spark-inr', ['ethereum'], 'INR', true);
+    expect(answer.rate).toBe('USD rate derived from ECB data');
+    expect(answer.coins[0]?.price).toBe('₹2,61,732.08');
+    expect(answer.coins[0]?.spark).toEqual(coinOf('coins-spark-inr', 'ethereum').sparkline7d);
   });
 
   it('keeps only numbers from the line, at most 200 of them, and drops a line of one point', async () => {
@@ -355,7 +379,7 @@ describe("the server's clock", () => {
   const MINUTE = 60_000;
   const HOUR = 60 * MINUTE;
   /** When coins-usd's bitcoin was read (its updatedAt). */
-  const READ = Date.parse('2026-10-06T10:55:01.352Z');
+  const READ = Date.parse('2026-10-06T10:55:01Z');
 
   /** coins-usd's bitcoin, on a browser clock at `clock`, from an answer whose now is `now` (left out if undefined). */
   async function bitcoinAt(clock: number, now: unknown): Promise<Coin> {
@@ -378,10 +402,11 @@ describe("the server's clock", () => {
     ['2 hours fast', 2 * HOUR],
     ['3 days slow', -72 * HOUR],
   ])("puts updatedAt on the browser's clock when it is %s, so the age is the server's", async (_, skew) => {
-    // The server answers 4 minutes after the price was read, to the second.
-    const coin = await bitcoinAt(READ + 4 * MINUTE + skew, '2026-10-06T10:59:01Z');
+    // The server answers 4 minutes after the price was read, both to the second; the browser's clock is 352 ms
+    // into its second, so the offset carries milliseconds.
+    const coin = await bitcoinAt(READ + 4 * MINUTE + skew + 352, '2026-10-06T10:59:01Z');
     expect(coin.updatedAt).toBe(READ + skew + 352);
-    expect(Date.now() - (coin.updatedAt ?? 0)).toBe(4 * MINUTE - 352);
+    expect(Date.now() - (coin.updatedAt ?? 0)).toBe(4 * MINUTE);
   });
 
   it.each([

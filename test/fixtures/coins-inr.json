@@ -1,17 +1,18 @@
 {
   "currency": "INR",
+  "now": "2026-10-06T10:55:31Z",
   "coins": [
     {
       "slug": "bitcoin",
       "name": "Bitcoin",
       "symbol": "BTC",
-      "logo": "https://cdn.coinfinhub.com/coin-logos/small/bitcoin.png?v=1",
+      "logo": "https://cdn.coinfinhub.com/coin-logos/small/bitcoin.png?v=1791187200",
       "rank": 1,
       "price": 8299733.9,
-      "change24h": -0.009326364692217,
+      "change24h": -0.0093,
       "trading": "listed",
       "stoppedAt": null,
-      "updatedAt": "2026-10-06T10:55:01.352Z",
+      "updatedAt": "2026-10-06T10:55:01Z",
       "url": "https://www.coinfinhub.com/price/bitcoin"
     },
     {
@@ -21,10 +22,10 @@
       "logo": null,
       "rank": 2,
       "price": 261732.08,
-      "change24h": -0.013626587313291652,
+      "change24h": -0.0136,
       "trading": "listed",
       "stoppedAt": null,
-      "updatedAt": "2026-10-06T10:55:01.352Z",
+      "updatedAt": "2026-10-06T10:55:01Z",
       "url": "https://www.coinfinhub.com/price/ethereum"
     },
     {
@@ -34,10 +35,10 @@
       "logo": null,
       "rank": null,
       "price": 96.415077,
-      "change24h": 0.009999999999998899,
+      "change24h": 0.01,
       "trading": "listed",
       "stoppedAt": null,
-      "updatedAt": "2026-10-06T10:55:01.352Z",
+      "updatedAt": "2026-10-06T10:55:01Z",
       "url": "https://www.coinfinhub.com/price/tether"
     },
     {
@@ -47,10 +48,10 @@
       "logo": null,
       "rank": null,
       "price": 1.1857869,
-      "change24h": -0.06772445820433864,
+      "change24h": -0.0677,
       "trading": "low",
       "stoppedAt": null,
-      "updatedAt": "2026-10-06T10:55:01.352Z",
+      "updatedAt": "2026-10-06T10:55:01Z",
       "url": "https://www.coinfinhub.com/price/quietcoin"
     },
     {
@@ -62,8 +63,8 @@
       "price": 43.960879,
       "change24h": null,
       "trading": "stopped",
-      "stoppedAt": "2026-10-01T14:20:00.000Z",
-      "updatedAt": "2026-10-06T10:55:01.352Z",
+      "stoppedAt": "2026-10-01T14:20:00Z",
+      "updatedAt": "2026-10-06T10:55:01Z",
       "url": "https://www.coinfinhub.com/price/haltcoin"
     }
   ],
@@ -72,6 +73,5 @@
     "source": "ECB",
     "date": "2026-10-16",
     "perUsd": 96.405436
-  },
-  "now": "2026-10-06T10:55:31Z"
+  }
 }

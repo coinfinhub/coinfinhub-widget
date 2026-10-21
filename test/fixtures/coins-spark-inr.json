@@ -1,0 +1,30 @@
+{
+  "currency": "INR",
+  "now": "2026-10-06T10:55:31Z",
+  "coins": [
+    {
+      "slug": "ethereum",
+      "name": "Ethereum",
+      "symbol": "ETH",
+      "logo": null,
+      "rank": 2,
+      "price": 261732.08,
+      "change24h": -0.0136,
+      "trading": "listed",
+      "stoppedAt": null,
+      "updatedAt": "2026-10-06T10:55:01Z",
+      "url": "https://www.coinfinhub.com/price/ethereum",
+      "sparkline7d": [
+        260307,
+        260585,
+        260714
+      ]
+    }
+  ],
+  "missing": [],
+  "rate": {
+    "source": "ECB",
+    "date": "2026-10-16",
+    "perUsd": 96.405436
+  }
+}

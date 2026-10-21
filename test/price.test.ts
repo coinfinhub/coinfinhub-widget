@@ -82,7 +82,7 @@ describe('states', () => {
     expect(change(element).className).toBe('cfh-chg cfh-down');
     expect(change(element).firstElementChild?.getAttribute('aria-hidden')).toBe('true');
     const image = part(element, '.cfh-logo img') as HTMLImageElement;
-    expect(image.getAttribute('src')).toBe('https://cdn.coinfinhub.com/coin-logos/small/bitcoin.png?v=1');
+    expect(image.getAttribute('src')).toBe('https://cdn.coinfinhub.com/coin-logos/small/bitcoin.png?v=1791187200');
     expect(image.alt).toBe('');
     expect(logo(element).getAttribute('aria-hidden')).toBe('true');
     expect(shown(part(element, '.cfh-badge'))).toBe(false);
@@ -331,7 +331,7 @@ describe('errors', () => {
     always('error-site-blocked');
     const element = await mount('coinfinhub-list', { top: '3', api: freshBase() });
     expect(state(element)).toBe('error');
-    expect(statusText(element)).toBe('This site may not show CoinFinHub prices.');
+    expect(statusText(element)).toBe("This site can't show CoinFinHub widgets.");
     expect(link(element).href).toBe('https://www.coinfinhub.com/');
   });
 
@@ -582,7 +582,7 @@ describe('a currency without a rate', () => {
 
 describe('the age note', () => {
   /** When the fixtures' prices were read (their updatedAt). */
-  const READ = Date.parse('2026-10-06T10:55:01.352Z');
+  const READ = Date.parse('2026-10-06T10:55:01Z');
   /** A price card, mounted when the fixtures' prices are `ago` old. */
   function agedBy(ago: number, attributes: Record<string, string> = {}) {
     vi.setSystemTime(READ + ago);

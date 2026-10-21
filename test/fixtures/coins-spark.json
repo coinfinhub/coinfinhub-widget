@@ -1,17 +1,18 @@
 {
   "currency": "USD",
+  "now": "2026-10-06T10:55:31Z",
   "coins": [
     {
       "slug": "bitcoin",
       "name": "Bitcoin",
       "symbol": "BTC",
-      "logo": "https://cdn.coinfinhub.com/coin-logos/small/bitcoin.png?v=1",
+      "logo": "https://cdn.coinfinhub.com/coin-logos/small/bitcoin.png?v=1791187200",
       "rank": 1,
       "price": 86091.97,
-      "change24h": -0.009326364692217,
+      "change24h": -0.0093,
       "trading": "listed",
       "stoppedAt": null,
-      "updatedAt": "2026-10-06T10:55:01.352Z",
+      "updatedAt": "2026-10-06T10:55:01Z",
       "url": "https://www.coinfinhub.com/price/bitcoin",
       "sparkline7d": [
         84027.3,
@@ -75,6 +76,5 @@
     }
   ],
   "missing": [],
-  "rate": null,
-  "now": "2026-10-06T10:55:31Z"
+  "rate": null
 }

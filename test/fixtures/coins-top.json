@@ -1,17 +1,18 @@
 {
   "currency": "USD",
+  "now": "2026-10-06T10:55:31Z",
   "coins": [
     {
       "slug": "bitcoin",
       "name": "Bitcoin",
       "symbol": "BTC",
-      "logo": "https://cdn.coinfinhub.com/coin-logos/small/bitcoin.png?v=1",
+      "logo": "https://cdn.coinfinhub.com/coin-logos/small/bitcoin.png?v=1791187200",
       "rank": 1,
       "price": 86091.97,
-      "change24h": -0.009326364692217,
+      "change24h": -0.0093,
       "trading": "listed",
       "stoppedAt": null,
-      "updatedAt": "2026-10-06T10:55:01.352Z",
+      "updatedAt": "2026-10-06T10:55:01Z",
       "url": "https://www.coinfinhub.com/price/bitcoin"
     },
     {
@@ -21,10 +22,10 @@
       "logo": null,
       "rank": 2,
       "price": 2714.91,
-      "change24h": -0.013626587313291652,
+      "change24h": -0.0136,
       "trading": "listed",
       "stoppedAt": null,
-      "updatedAt": "2026-10-06T10:55:01.352Z",
+      "updatedAt": "2026-10-06T10:55:01Z",
       "url": "https://www.coinfinhub.com/price/ethereum"
     },
     {
@@ -34,10 +35,10 @@
       "logo": null,
       "rank": 3,
       "price": 783.91,
-      "change24h": -0.521560366488162,
+      "change24h": -0.5216,
       "trading": "listed",
       "stoppedAt": null,
-      "updatedAt": "2026-10-06T10:55:01.352Z",
+      "updatedAt": "2026-10-06T10:55:01Z",
       "url": "https://www.coinfinhub.com/price/bnb"
     },
     {
@@ -47,10 +48,10 @@
       "logo": null,
       "rank": 4,
       "price": 1.5089,
-      "change24h": -0.5273913903355533,
+      "change24h": -0.5274,
       "trading": "listed",
       "stoppedAt": null,
-      "updatedAt": "2026-10-06T10:55:01.352Z",
+      "updatedAt": "2026-10-06T10:55:01Z",
       "url": "https://www.coinfinhub.com/price/xrp"
     },
     {
@@ -60,14 +61,13 @@
       "logo": null,
       "rank": 5,
       "price": 1.0002,
-      "change24h": 0.0099990000999889,
+      "change24h": 0.01,
       "trading": "listed",
       "stoppedAt": null,
-      "updatedAt": "2026-10-06T10:55:01.352Z",
+      "updatedAt": "2026-10-06T10:55:01Z",
       "url": "https://www.coinfinhub.com/price/usdc"
     }
   ],
   "missing": [],
-  "rate": null,
-  "now": "2026-10-06T10:55:31Z"
+  "rate": null
 }

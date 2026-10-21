@@ -1,0 +1,36 @@
+{
+  "currency": "USD",
+  "now": "2026-10-06T10:55:31Z",
+  "coins": [
+    {
+      "slug": "binance-coin",
+      "name": "BNB",
+      "symbol": "BNB",
+      "logo": null,
+      "rank": 3,
+      "price": 783.91,
+      "change24h": -0.5216,
+      "trading": "listed",
+      "stoppedAt": null,
+      "updatedAt": "2026-10-06T10:55:01Z",
+      "url": "https://www.coinfinhub.com/price/bnb"
+    },
+    {
+      "slug": "bnb",
+      "name": "BNB",
+      "symbol": "BNB",
+      "logo": null,
+      "rank": 3,
+      "price": 783.91,
+      "change24h": -0.5216,
+      "trading": "listed",
+      "stoppedAt": null,
+      "updatedAt": "2026-10-06T10:55:01Z",
+      "url": "https://www.coinfinhub.com/price/bnb"
+    }
+  ],
+  "missing": [
+    "old-deadcoin"
+  ],
+  "rate": null
+}

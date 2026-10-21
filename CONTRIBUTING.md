@@ -34,7 +34,7 @@ CI runs all of it on every push and pull request.
 | `src/format.ts` | The one formatter: prices, changes, days, the converter's amounts, and reading what a visitor types. |
 | `src/dom.ts`, `src/spark.ts` | One coin's parts, the 7-day line's maths. |
 | `src/styles.ts` | The one stylesheet, light and dark tokens. |
-| `test/fixtures/` | **The endpoint's contract:** its answers and errors, which the API service's tests copy and must match, plus a few bodies only the widgets need (hostile text, unknown values, missing fields, a coin without a price, an unknown error code). |
+| `test/fixtures/` | **The endpoint's contract:** its answers and errors, copied from the API service's contract tests, which write them (the same values; the 200 answers pretty-printed), plus a few bodies only the widgets need (hostile text, unknown values, missing fields, a coin without a price, an unknown error code). |
 | `docs/` | The demo page; `docs/mock.js` answers like the endpoint, for the demo and the browser tests. |
 
 ## The checks
@@ -71,7 +71,7 @@ CI rebuilds `dist` and fails if it differs from the committed file, so a tag can
 - **Every word in English, written by the widgets.** The endpoint sends numbers and codes; `src/format.ts` writes every price, change and day with `Intl`, and the widgets their own words. The one exception is an error the widgets don't know, which shows the server's message.
 - **Fall back safely** on any value or field it doesn't know: the endpoint may add fields and values within v1.
 - **Nothing unused:** knip and the CSS check enforce it.
-- **Tests for every behaviour,** and a fixture for every new case of the contract.
+- **Tests for every behaviour,** and a fixture for every new case of the contract: the API service's tests write its answer, and the maintainers copy it here.
 
 ## Scope
 

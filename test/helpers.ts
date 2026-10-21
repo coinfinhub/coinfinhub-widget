@@ -110,8 +110,8 @@ export const wait = (ms: number) => vi.advanceTimersByTimeAsync(ms);
 export function useWidgetSetup(): void {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance', 'Date'] });
-    // 30 s after the fixtures' updatedAt.
-    vi.setSystemTime(new Date('2026-10-06T10:55:31.352Z'));
+    // 30 s after the fixtures' updatedAt: their now.
+    vi.setSystemTime(new Date('2026-10-06T10:55:31Z'));
     vi.stubGlobal('IntersectionObserver', FakeObserver);
     vi.spyOn(Math, 'random').mockReturnValue(0);
     screen.on = true;
