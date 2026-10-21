@@ -2,8 +2,8 @@
  * CoinFinHub widgets: <coinfinhub-price>, <coinfinhub-list>, <coinfinhub-ticker> and <coinfinhub-converter>.
  *
  * Framework-free, no dependencies, Shadow DOM. Every word from the server is written with textContent,
- * never as HTML, and links and logos only ever come from www.coinfinhub.com. Each element is defined
- * once, even when the script loads twice.
+ * never as HTML; links only ever go to www.coinfinhub.com, and logos only come from /coin-logos/ on a
+ * coinfinhub.com host. Each element is defined once, even when the script loads twice.
  */
 import { CoinfinhubConverter } from './converter';
 import { CoinfinhubList } from './list';

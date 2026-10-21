@@ -1,21 +1,14 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
-import { readFileSync } from 'node:fs';
 
 // The pages are served from localhost and the mock API from 127.0.0.1 (servers.mjs): every
 // request the widgets make here is cross-origin, as on other people's sites.
 const API = `http://127.0.0.1:${process.env.CFH_API_PORT ?? '4174'}`;
 
-interface FixtureCoin {
-  slug: string;
-  display: { price: string };
-}
-const coins = (name: string): FixtureCoin[] =>
-  (JSON.parse(readFileSync(new URL(`../fixtures/${name}.json`, import.meta.url), 'utf8')) as { coins: FixtureCoin[] }).coins;
-const priceOf = (name: string, slug: string): string => coins(name).find((coin) => coin.slug === slug)?.display.price ?? '';
-const BITCOIN = priceOf('coins-usd', 'bitcoin');
-const BITCOIN_INR = priceOf('coins-inr', 'bitcoin');
-// A 1×1 PNG, standing in for a logo from www.coinfinhub.com.
+// Bitcoin's price in the fixtures (coins-usd, coins-inr), as the widgets write it.
+const BITCOIN = '$86,091.97';
+const BITCOIN_INR = '₹82,99,733.90';
+// A 1×1 PNG, standing in for a logo from cdn.coinfinhub.com.
 const PIXEL = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
 
 /** A path segment of its own under the mock API: its calls are counted apart, and its first word picks a scenario. */
@@ -54,10 +47,10 @@ function watchErrors(page: Page): string[] {
   return errors;
 }
 
-// No request leaves this machine: the live endpoint and the logos on www.coinfinhub.com are refused,
-// unless a test answers them itself.
+// No request leaves this machine: the live endpoint (widgets.), the logos (cdn.) and every other coinfinhub.com
+// host are refused, unless a test answers them itself.
 test.beforeEach(async ({ page }) => {
-  await page.route('https://www.coinfinhub.com/**', (route) => route.abort());
+  await page.route(/^https:\/\/([^/]+\.)?coinfinhub\.com\//, (route) => route.abort());
 });
 
 /** Scrolls every widget into view once: they only ask for prices while on screen. */
@@ -91,6 +84,8 @@ test('the demo shows every widget and state from another origin, with no errors'
   await expect(figure('No trades').locator('.cfh-chg')).toBeHidden();
   await expect(figure("A coin CoinFinHub doesn't know").locator('.cfh-name')).toHaveText(['Bitcoin', 'Ethereum']);
   await expect(figure('An unknown coin on its own').locator('.cfh-status')).toHaveText('CoinFinHub has no page for this coin.');
+  await expect(figure('An older answer').locator('.cfh-foot')).toContainText('Updated 4 min ago');
+  await expect(figure('Another currency').locator('.cfh-foot')).not.toContainText('Updated');
   expect(errors).toEqual([]);
 });
 
@@ -443,7 +438,7 @@ test('the converter works out either field as the visitor types, and changes cur
 });
 
 test('shows logos from CoinFinHub, and the letter when one fails', async ({ page }) => {
-  await page.route('https://www.coinfinhub.com/coin-logos/**', (route) =>
+  await page.route('https://cdn.coinfinhub.com/coin-logos/**', (route) =>
     route.request().url().includes('/bitcoin.') ? route.fulfill({ contentType: 'image/png', body: PIXEL }) : route.abort(),
   );
   await page.goto('/blank.html');

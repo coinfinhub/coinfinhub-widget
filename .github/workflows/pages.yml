@@ -1,7 +1,7 @@
 name: Pages
 
-# Publishes the demo: docs/, with the committed dist/ (the same file jsDelivr serves, which CI
-# checks against a fresh build) and the sample answers from test/fixtures/.
+# Publishes the demo: docs/, with the committed dist/ (the file a release serves from cdn.coinfinhub.com and
+# jsDelivr mirrors, which CI checks against a fresh build) and the sample answers from test/fixtures/.
 on:
   push:
     branches: [main]

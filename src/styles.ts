@@ -355,8 +355,8 @@ const rules = /* css */ `
   font-variant-numeric: tabular-nums;
 }
 
-/* The footer: a quiet credit inside the card. A hairline above, the rate note on the left, "Powered by ▣ CoinFinHub"
-   on the right, the name underlined only on hover and focus. */
+/* The footer: a quiet credit inside the card. A hairline above, the notes on the left (how old the prices are, the
+   rate's source), "Powered by ▣ CoinFinHub" on the right, the name underlined only on hover and focus. */
 .cfh-foot {
   display: flex;
   flex-wrap: wrap;
@@ -366,9 +366,6 @@ const rules = /* css */ `
   border-top: 1px solid var(--cfh-line);
   font-size: 0.78em;
   color: var(--cfh-muted);
-}
-.cfh-foot > span {
-  order: -1;
 }
 .cfh-ticker .cfh-foot {
   margin-top: 0;

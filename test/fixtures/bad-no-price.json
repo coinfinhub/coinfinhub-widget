@@ -5,16 +5,12 @@
       "slug": "bitcoin",
       "name": "Bitcoin",
       "symbol": "BTC",
-      "price": 86091.97,
-      "display": {
-        "change": "−0.01%",
-        "direction": "down"
-      }
+      "rank": 1,
+      "change24h": -0.009326364692217,
+      "trading": "listed",
+      "stoppedAt": null
     }
   ],
   "missing": [],
-  "rate": null,
-  "display": {
-    "rate": null
-  }
+  "rate": null
 }

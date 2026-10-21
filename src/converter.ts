@@ -3,8 +3,8 @@
  * both editable, and a currency picker. The maths happens here, from the price the server sends.
  */
 import type { Coins } from './api';
-import { formatAmount, parseAmount } from './convert';
 import { add, coinView, type CoinView } from './dom';
+import { formatAmount, parseAmount } from './format';
 import { Widget } from './widget';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'INR', 'AUD', 'CHF'];
@@ -98,7 +98,7 @@ export class CoinfinhubConverter extends Widget {
     const other = this.#typed === 'amount' ? this.#value : this.#amount;
     other.value =
       price && typed !== null
-        ? formatAmount(this.#typed === 'amount' ? typed * price : typed / price, currency, this.#typed === 'value')
+        ? formatAmount(this.#typed === 'amount' ? typed * price : typed / price, currency, this.#typed === 'amount' ? 'money' : 'coin')
         : '';
   }
 }

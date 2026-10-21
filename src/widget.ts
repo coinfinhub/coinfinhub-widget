@@ -3,14 +3,25 @@
  * the refresh while on screen, the backoff, the US-dollar fallback, and the footer with its link.
  * Each element fills `main` and says which coins it wants.
  */
-import { BAD_COIN, coinLink, getCoins, SITE, SLUG, type Coins, type Failure, type Want } from './api';
+import { API, BAD_COIN, coinLink, getCoins, SITE, SLUG, type Coins, type Failure, type Want } from './api';
 import { add, svg } from './dom';
 import { styleSheet } from './styles';
 
 const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
 const STALE = 10 * MINUTE;
-/** Codes whose message from the server helps the site's author; others get the plain "unavailable". */
+/** Prices older than this say how old they are: a busy address may get a cached answer, up to 5 minutes old. */
+const AGED = 3 * MINUTE;
+/** Codes whose message from the server helps the site's author: something about the coin or the snippet. */
 const OWN_MESSAGE = new Set([...BAD_COIN, 'no_coin', 'invalid_currency', 'invalid_query']);
+/**
+ * Passing trouble on the way or on CoinFinHub's side: the plain "unavailable". A code the widget doesn't know
+ * (a later one, such as a blocked site's) shows the server's message, as text.
+ */
+const PLAIN = new Set(['network', 'bad_response', 'unavailable', 'prices_unavailable', 'rate_limited', 'rate_unavailable', 'widget_off']);
+
+/** The newest updatedAt among the coins, 0 when none has one. */
+const newest = (data: Coins | null): number => Math.max(0, ...(data?.coins ?? []).map((coin) => coin.updatedAt ?? 0));
 /** A failure the widget finds itself, before any call. */
 const NO_CALL = { ok: false, retryAfter: null } as const;
 
@@ -58,7 +69,8 @@ export abstract class Widget extends HTMLElement {
   readonly #status: HTMLParagraphElement;
   readonly #note: HTMLParagraphElement;
   readonly #link: HTMLAnchorElement;
-  readonly #rate: HTMLSpanElement;
+  /** The footer's left side: how old the prices are, and where the rate comes from. */
+  readonly #info: HTMLSpanElement;
   /** The narrowest width="…" may make it. */
   readonly #least: number;
   /**
@@ -103,6 +115,8 @@ export abstract class Widget extends HTMLElement {
     this.#status.setAttribute('role', 'status');
     this.#note = add(card, 'p', 'cfh-note');
     const foot = add(card, 'p', 'cfh-foot');
+    // The notes first, as they are seen and read; the link after them, on the right.
+    this.#info = add(foot, 'span');
     this.#link = add(foot, 'a', 'cfh-link');
     // A quiet credit, "Powered by ▣ CoinFinHub": the words in the muted colour, the name in the ink colour.
     add(this.#link, 'span', 'cfh-by').textContent = 'Powered by ';
@@ -122,7 +136,6 @@ export abstract class Widget extends HTMLElement {
     this.#link.target = '_blank';
     // No noreferrer: the referrer is how CoinFinHub sees which sites send visitors.
     this.#link.rel = 'nofollow noopener';
-    this.#rate = add(foot, 'span');
   }
 
   /** What to ask for: slugs, or N for the top N. By default the coin attribute's slug; none when it is missing. */
@@ -202,12 +215,14 @@ export abstract class Widget extends HTMLElement {
 
   readonly #onBeat = (): void => {
     this.#due = 0;
+    // Each beat says how old the prices are now, also off screen or in a hidden tab.
+    this.#foot(this.#data);
     this.#tick();
   };
 
   /** The API base, currency, line and units, as the attributes say now. */
   #settings(): [string, string, boolean, ...Want[]] {
-    let base = SITE;
+    let base = API;
     const api = this.getAttribute('api');
     if (api) {
       try {
@@ -287,8 +302,9 @@ export abstract class Widget extends HTMLElement {
       this.#failures++;
       const backoff = Math.min(5 * MINUTE, 10_000 * 3 ** (this.#failures - 1) * (1 + Math.random() / 2));
       this.#due = now + (answer.retryAfter ? answer.retryAfter * 1000 : backoff);
-      // A failed refresh keeps the last good prices until they are 10 minutes old.
+      // A failed refresh keeps the last good prices until they are 10 minutes old, and says how old they are.
       if (!this.#data || this.#age(now) > STALE) this.#render(answer);
+      else this.#foot(this.#data);
     }
     this.#tick();
   }
@@ -296,8 +312,20 @@ export abstract class Widget extends HTMLElement {
   /** How old the shown prices are: from the newest updatedAt, but never less than the time since they arrived. */
   #age(now: number): number {
     const since = now - this.#receivedAt;
-    const newest = Math.max(0, ...(this.#data?.coins ?? []).map((coin) => coin.updatedAt ?? 0));
-    return newest ? Math.max(since, Date.now() - newest) : since;
+    const last = newest(this.#data);
+    return last ? Math.max(since, Date.now() - last) : since;
+  }
+
+  /**
+   * The footer's left side for the prices shown (null: none): "Updated 4 min ago" once the newest is over
+   * 3 minutes old, then the rate's label, "Updated 4 min ago · USD rate derived from ECB data".
+   */
+  #foot(data: Coins | null): void {
+    const last = newest(data);
+    const age = last ? Date.now() - last : 0;
+    const updated =
+      age > AGED ? `Updated ${age < HOUR ? `${String(Math.floor(age / MINUTE))} min` : `${String(Math.floor(age / HOUR))} h`} ago` : '';
+    this.#info.textContent = [updated, data?.rate].filter(Boolean).join(' · ');
   }
 
   /** Shows the data (failure null, data present), loading (both null) or the error state. */
@@ -307,18 +335,21 @@ export abstract class Widget extends HTMLElement {
     const s = one ? '' : 's';
     this.card.dataset.state = data ? 'data' : failure ? 'error' : 'loading';
     this.#status.hidden = !!data;
+    const plain = `Price${s} unavailable right now.`;
     const status = data
       ? ''
       : !failure
         ? `Loading price${s}…`
-        : !OWN_MESSAGE.has(failure.code)
-          ? `Price${s} unavailable right now.`
-          : (failure.message ?? `CoinFinHub has no page for ${one ? 'this coin' : 'these coins'}.`);
+        : OWN_MESSAGE.has(failure.code)
+          ? (failure.message ?? `CoinFinHub has no page for ${one ? 'this coin' : 'these coins'}.`)
+          : PLAIN.has(failure.code)
+            ? plain
+            : (failure.message ?? plain);
     // Written only when it changes: the status region never announces a refresh.
     if (this.#status.textContent !== status) this.#status.textContent = status;
     this.#note.textContent = data && this.#usdFor ? `Shown in US dollars: no ${this.#usdFor} rate right now.` : '';
     this.#note.hidden = !this.#note.textContent;
-    this.#rate.textContent = data?.rate ? `· ${data.rate}` : '';
+    this.#foot(data);
     // A single coin links to its page (home when the coin is wrong); lists and the ticker to the home page.
     const coin = this.coin();
     this.#link.href =

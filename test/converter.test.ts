@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import '../src/coinfinhub-widget';
 import {
-  coinOf,
   fixture,
+  footText,
   freshBase,
   link,
   mount,
@@ -11,7 +11,6 @@ import {
   part,
   parts,
   queries,
-  rateText,
   respond,
   settle,
   shown,
@@ -43,7 +42,7 @@ describe('<coinfinhub-converter>', () => {
     expect(state(element)).toBe('data');
     expect(part(element, '.cfh-card').getAttribute('aria-label')).toBe('Bitcoin converter');
     expect(part(element, '.cfh-name').textContent).toBe('Bitcoin');
-    expect(part(element, '.cfh-sum').textContent).toBe(`1 BTC = ${coinOf('coins-usd', 'bitcoin').display.price}`);
+    expect(part(element, '.cfh-sum').textContent).toBe('1 BTC = $86,091.97');
     expect(parts(element, '.cfh-lab').map((label) => label.textContent)).toEqual(['Amount (BTC)', 'Value (USD)', 'Currency']);
     for (const field of parts(element, '.cfh-field')) expect(field.tagName).toBe('LABEL');
     expect(amount(element).value).toBe('1');
@@ -106,8 +105,8 @@ describe('<coinfinhub-converter>', () => {
     expect(amount(element).value).toBe('1');
     expect(value(element).value).toBe('82,99,733.90');
     expect(parts(element, '.cfh-lab')[1]?.textContent).toBe('Value (INR)');
-    expect(part(element, '.cfh-sum').textContent).toBe(`1 BTC = ${coinOf('coins-inr', 'bitcoin').display.price}`);
-    expect(rateText(element)).toBe('· USD rate derived from ECB data');
+    expect(part(element, '.cfh-sum').textContent).toBe('1 BTC = ₹82,99,733.90');
+    expect(footText(element)).toBe('USD rate derived from ECB data');
   });
 
   it('shows a currency it does not list, so picking any listed one is a change', async () => {
@@ -142,12 +141,12 @@ describe('<coinfinhub-converter>', () => {
     expect(noteText(element)).toBe('Shown in US dollars: no EUR rate right now.');
   });
 
-  it('leaves the value empty without a price to work from', async () => {
+  it('works from the price alone when other fields are missing', async () => {
     stubFetch(() => respond('coins-missing-fields'));
     const element = await converter({ coin: 'solana', api: freshBase() });
     expect(part(element, '.cfh-sum').textContent).toBe('1 Solana = $162.08');
     expect(parts(element, '.cfh-lab')[0]?.textContent).toBe('Amount');
-    expect(value(element).value).toBe('');
+    expect(value(element).value).toBe('162.08');
   });
 
   it('keeps its fields while loading and on errors, with the status beside them', async () => {

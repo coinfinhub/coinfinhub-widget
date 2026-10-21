@@ -8,7 +8,7 @@ Please report security problems privately through the contact page on CoinFinHub
 
 Tell us what you found, how to reproduce it, and which version (tag) it affects. We'll confirm we've received it, keep you informed, and credit you in the release notes if you'd like.
 
-In scope: this repository's code, and the built file that jsDelivr serves from its tags (for example, a way to run script, inject HTML, send the link anywhere but CoinFinHub's coin pages or home page, or load an image from anywhere but `https://www.coinfinhub.com/coin-logos/…`). The CoinFinHub website and its endpoint have their own report channel: the same contact page.
+In scope: this repository's code, and the built file served from `cdn.coinfinhub.com/widgets/…` and mirrored by jsDelivr from its tags (for example, a way to run script, inject HTML, send the link anywhere but a page on `https://www.coinfinhub.com`, or load an image from anywhere but `/coin-logos/…` on a `coinfinhub.com` host). The CoinFinHub website and its endpoint have their own report channel: the same contact page.
 
 ## Supported versions
 

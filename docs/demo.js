@@ -1,14 +1,14 @@
 // The demo page: sample data for every widget and state, the live endpoint for the builder when it
 // answers, and the snippet.
 //
-//   ?api=http://127.0.0.1:4174       every widget uses that API (the browser tests' mock)
-//   ?api=https://www.coinfinhub.com  every widget uses the live endpoint, sample states included
+//   ?api=http://127.0.0.1:4174           every widget uses that API (the browser tests' mock)
+//   ?api=https://widgets.coinfinhub.com  every widget uses the live endpoint, sample states included
 //
 // This module runs before the widgets' script, so the sample answers are in place before any widget asks.
 import { answer } from './mock.js';
 
 const SAMPLE = 'https://sample.invalid';
-const LIVE = 'https://www.coinfinhub.com';
+const LIVE = 'https://widgets.coinfinhub.com';
 const api = new URLSearchParams(location.search).get('api')?.replace(/\/+$/, '');
 
 // Sample mode: requests to SAMPLE are answered in the page from the fixtures; anything else goes out as usual.
@@ -68,7 +68,7 @@ const labelOf = (coin) => (coin.symbol ? `${coin.name} (${coin.symbol})` : coin.
 
 async function liveAnswers() {
   try {
-    const response = await realFetch(`${LIVE}/api/widget/v1/coins?ids=bitcoin`, { credentials: 'omit' });
+    const response = await realFetch(`${LIVE}/v1/coins?ids=bitcoin`, { credentials: 'omit' });
     return response.ok;
   } catch {
     return false;
@@ -78,7 +78,7 @@ async function liveAnswers() {
 /** The top 20 coins to offer, from the same API as the preview (cross-origin, as the widgets ask). */
 async function loadOffered() {
   try {
-    const response = await window.fetch(`${builderApi ?? LIVE}/api/widget/v1/coins?top=20`, { credentials: 'omit' });
+    const response = await window.fetch(`${builderApi ?? LIVE}/v1/coins?top=20`, { credentials: 'omit' });
     const body = await response.json();
     offered = (Array.isArray(body.coins) ? body.coins : [])
       .filter((coin) => typeof coin.slug === 'string' && SLUG.test(coin.slug) && typeof coin.name === 'string')
@@ -86,7 +86,8 @@ async function loadOffered() {
         slug,
         name,
         symbol: typeof symbol === 'string' ? symbol : '',
-        logo: typeof logo === 'string' && logo.startsWith('https://www.coinfinhub.com/coin-logos/') ? logo : null,
+        // Logos as the widgets take them: under /coin-logos/ on a coinfinhub.com host.
+        logo: typeof logo === 'string' && /^https:\/\/([a-z0-9-]+\.)*coinfinhub\.com\/coin-logos\//.test(logo) ? logo : null,
       }));
   } catch {
     offered = [];
@@ -320,7 +321,7 @@ if (api) {
   builderApi = api;
   source.textContent = `Every widget on this page asks ${api}.`;
 } else if (await liveAnswers()) {
-  source.textContent = 'The builder shows live prices from www.coinfinhub.com; the other widgets show sample data.';
+  source.textContent = 'The builder shows live prices from widgets.coinfinhub.com; the other widgets show sample data.';
 } else {
   builderApi = SAMPLE;
   source.textContent =

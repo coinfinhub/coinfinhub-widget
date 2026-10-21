@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import '../src/coinfinhub-widget';
 import {
-  coinOf,
   fixture,
+  footText,
   freshBase,
   link,
   mount,
@@ -10,7 +10,6 @@ import {
   part,
   parts,
   queries,
-  rateText,
   respond,
   settle,
   shown,
@@ -39,8 +38,8 @@ describe('<coinfinhub-list>', () => {
     const [ethereum, , halted] = parts(element, '.cfh-item');
     expect(ethereum?.tagName).toBe('LI');
     expect(ethereum?.querySelector('.cfh-sym')?.textContent).toBe('ETH');
-    expect(ethereum?.querySelector('.cfh-price')?.textContent).toBe(coinOf('coins-usd', 'ethereum').display.price);
-    expect(ethereum?.querySelector('.cfh-chg')?.textContent).toBe(`▼ ${String(coinOf('coins-usd', 'ethereum').display.change)} 24h`);
+    expect(ethereum?.querySelector('.cfh-price')?.textContent).toBe('$2,714.91');
+    expect(ethereum?.querySelector('.cfh-chg')?.textContent).toBe('▼ −0.01% 24h');
     expect(halted?.querySelector('.cfh-badge')?.textContent).toBe('No trades since 1 Oct 2026');
     expect((halted?.querySelector('.cfh-chg') as HTMLElement | null)?.hidden).toBe(true);
     expect(link(element).href).toBe('https://www.coinfinhub.com/');
@@ -77,9 +76,9 @@ describe('<coinfinhub-list>', () => {
 
   it('leaves out a coin that came back unreadable, and shows the rest', async () => {
     stubFetch((url) => {
-      const body = JSON.parse(JSON.stringify(fixture('coins-usd'))) as { coins: { slug: string; display: Record<string, unknown> }[] };
+      const body = JSON.parse(JSON.stringify(fixture('coins-usd'))) as { coins: { slug: string; price?: number }[] };
       const ethereum = body.coins.find((coin) => coin.slug === 'ethereum');
-      if (ethereum) delete ethereum.display.price;
+      if (ethereum) delete ethereum.price;
       const ids = url.searchParams.get('ids')?.split(',') ?? [];
       return new Response(JSON.stringify({ ...body, coins: body.coins.filter((coin) => ids.includes(coin.slug)) }));
     });
@@ -127,10 +126,10 @@ describe('<coinfinhub-list>', () => {
     stubFetch(() => respond('coins-inr'));
     const element = await mount('coinfinhub-list', { coins: 'bitcoin,ethereum', currency: 'INR', api: freshBase() });
     expect(parts(element, '.cfh-price').map((price) => price.textContent)).toEqual([
-      coinOf('coins-inr', 'bitcoin').display.price,
-      coinOf('coins-inr', 'ethereum').display.price,
+      '₹82,99,733.90',
+      '₹2,61,732.08',
     ]);
-    expect(rateText(element)).toBe('· USD rate derived from ECB data');
+    expect(footText(element)).toBe('USD rate derived from ECB data');
   });
 
   it('switches to the strip with layout="strip", without asking again', async () => {

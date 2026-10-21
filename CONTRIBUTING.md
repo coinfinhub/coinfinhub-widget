@@ -30,10 +30,11 @@ CI runs all of it on every push and pull request.
 | `src/coinfinhub-widget.ts` | The entry: defines the four elements, each once. |
 | `src/widget.ts` | What every widget shares: attributes, states, refresh, backoff, the US-dollar fallback, the footer. |
 | `src/price.ts`, `src/list.ts`, `src/ticker.ts`, `src/converter.ts` | The four elements. |
-| `src/api.ts` | The one request layer: merged calls, the once-a-minute floor, checking every answer. |
-| `src/dom.ts`, `src/spark.ts`, `src/convert.ts` | One coin's parts, the 7-day line's maths, the converter's numbers. |
+| `src/api.ts` | The one request layer: merged calls, the once-a-minute floor, checking every answer and turning its numbers into each coin's text. |
+| `src/format.ts` | The one formatter: prices, changes, days, the converter's amounts, and reading what a visitor types. |
+| `src/dom.ts`, `src/spark.ts` | One coin's parts, the 7-day line's maths. |
 | `src/styles.ts` | The one stylesheet, light and dark tokens. |
-| `test/fixtures/` | The endpoint's examples, copied from the CoinFinHub site's tests, plus a few bodies only the widgets need (hostile text, unknown values, missing fields). |
+| `test/fixtures/` | **The endpoint's contract:** its answers and errors, which the API service's tests copy and must match, plus a few bodies only the widgets need (hostile text, unknown values, missing fields, a coin without a price, an unknown error code). |
 | `docs/` | The demo page; `docs/mock.js` answers like the endpoint, for the demo and the browser tests. |
 
 ## The checks
@@ -47,11 +48,11 @@ CI runs all of it on every push and pull request.
 | `npm test` | Unit tests (Vitest + happy-dom), fed by the fixtures in `test/fixtures/`. |
 | `npm run build` | Builds `dist/coinfinhub-widget.js` with esbuild. |
 | `npm run size` | The size budget: at most 12,288 bytes gzipped (level 9) for all four widgets. |
-| `npm run sri -- --check` | The snippets in `README.md` and `docs/index.html` carry the hash and version of `dist`. |
+| `npm run sri -- --check` | The snippets in `README.md` and `docs/index.html` load this version from `cdn.coinfinhub.com`, and every hash in them is `dist`'s. |
 
 ## `dist/` is committed
 
-jsDelivr serves `dist/coinfinhub-widget.js` straight from the repo's git tags, so the built file lives in git. After any change under `src/`:
+A release's `dist/coinfinhub-widget.js` is what `cdn.coinfinhub.com/widgets/{version}/` serves, and jsDelivr mirrors it straight from the repo's git tags, so the built file lives in git. After any change under `src/`:
 
 1. `npm run build`
 2. `npm run sri` and paste the new hash into the snippets in `README.md` and `docs/index.html`
@@ -63,11 +64,11 @@ CI rebuilds `dist` and fails if it differs from the committed file, so a tag can
 
 - **No runtime dependencies.** Everything ships in one file.
 - **No tracking.** No cookies, storage, fingerprinting or analytics, and no requests other than the prices and the logos.
-- **Text only.** Everything from the server is written with `textContent`, never as HTML. Links only ever point at `https://www.coinfinhub.com/price/…` or the home page, and logos only come from `https://www.coinfinhub.com/coin-logos/…`.
+- **Text only.** Everything from the server is written with `textContent`, never as HTML. Links only ever point at a page on `https://www.coinfinhub.com`, and logos only come from `/coin-logos/…` on `https://coinfinhub.com` or a `https://*.coinfinhub.com` host.
 - **One request layer.** Every widget asks through `src/api.ts`, so calls stay merged and the once-a-minute floor holds for pinned embeds that can't be patched.
 - **Our own names.** Classes are `cfh-*`, custom properties `--cfh-*`.
 - **Motion only in the ticker,** paused on hover and focus and off under reduced motion; sizes in `em` (the host sets `font-size: max(1em, 15px)`), never `rem`.
-- **Every word in English, and the server's text where it sends one.** Prices and changes come formatted from the server; only the converter formats its own fields, with `Intl.NumberFormat`.
+- **Every word in English, written by the widgets.** The endpoint sends numbers and codes; `src/format.ts` writes every price, change and day with `Intl`, and the widgets their own words. The one exception is an error the widgets don't know, which shows the server's message.
 - **Fall back safely** on any value or field it doesn't know: the endpoint may add fields and values within v1.
 - **Nothing unused:** knip and the CSS check enforce it.
 - **Tests for every behaviour,** and a fixture for every new case of the contract.

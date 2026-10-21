@@ -10,39 +10,26 @@
       "price": 2714.91,
       "change24h": -0.013626587313291652,
       "trading": "listed",
+      "stoppedAt": null,
       "updatedAt": "2026-10-06T10:55:01.352Z",
-      "url": "https://www.coinfinhub.com/price/ethereum",
-      "display": {
-        "price": "$2,714.91",
-        "change": "−0.01%",
-        "direction": "down",
-        "badge": null
-      }
+      "url": "https://www.coinfinhub.com/price/ethereum"
     },
     {
       "slug": "bitcoin",
       "name": "Bitcoin",
       "symbol": "BTC",
-      "logo": "https://www.coinfinhub.com/coin-logos/small/bitcoin.png?v=1",
+      "logo": "https://cdn.coinfinhub.com/coin-logos/small/bitcoin.png?v=1",
       "rank": 1,
       "price": 86091.97,
       "change24h": -0.009326364692217,
       "trading": "listed",
+      "stoppedAt": null,
       "updatedAt": "2026-10-06T10:55:01.352Z",
-      "url": "https://www.coinfinhub.com/price/bitcoin",
-      "display": {
-        "price": "$86,091.97",
-        "change": "−0.01%",
-        "direction": "down",
-        "badge": null
-      }
+      "url": "https://www.coinfinhub.com/price/bitcoin"
     }
   ],
   "missing": [
     "not-a-coin"
   ],
-  "rate": null,
-  "display": {
-    "rate": null
-  }
+  "rate": null
 }

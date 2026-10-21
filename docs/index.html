@@ -14,7 +14,7 @@
 <header class="cfh-demo-head">
   <div class="cfh-demo-wrap">
     <h1>CoinFinHub widgets</h1>
-    <p class="cfh-demo-lead">Show coin prices from CoinFinHub on any website: a price card, a list, a ticker and a converter. One script for all four, no dependencies, about 8 KB gzipped. Free, MIT-licensed code; prices for display, not for trading.</p>
+    <p class="cfh-demo-lead">Show coin prices from CoinFinHub on any website: a price card, a list, a ticker and a converter. One script for all four, no dependencies, about 9 KB gzipped. Free, MIT-licensed code; prices for display, not for trading.</p>
     <p class="cfh-demo-links"><a href="https://github.com/coinfinhub/coinfinhub-widget">Source on GitHub</a> · <a href="https://www.coinfinhub.com">CoinFinHub</a></p>
     <p id="cfh-demo-source" class="cfh-demo-note">Checking the live endpoint…</p>
   </div>
@@ -160,7 +160,7 @@
         <div id="cfh-demo-live" class="cfh-demo-live"></div>
         <h3 class="cfh-demo-label">Code</h3>
         <p class="cfh-demo-note">Paste it where the widget should appear. The script is needed once per page, however many widgets it has. Without JavaScript, the plain link shows instead.</p>
-        <pre class="cfh-demo-code"><code id="cfh-demo-snippet">&lt;script type="module" src="https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@1.0.0/dist/coinfinhub-widget.js" integrity="sha384-1b471Mz/U7HUzT0lb+S7TNSF2rowOYXsNJwTJXaa0yKIm3fr0pD0mvevcD/FY0bO" crossorigin="anonymous"&gt;&lt;/script&gt;
+        <pre class="cfh-demo-code"><code id="cfh-demo-snippet">&lt;script type="module" src="https://cdn.coinfinhub.com/widgets/1.0.0/coinfinhub-widget.js" integrity="sha384-2GQuSLIa7qDJa/X+XJnqWiFv6bHfGZQBD1dCQx8Y2GquW6Q91WFWXEFvpLliyzYF" crossorigin="anonymous"&gt;&lt;/script&gt;
 &lt;coinfinhub-price coin="bitcoin"&gt;&lt;a href="https://www.coinfinhub.com/price/bitcoin" target="_blank" rel="nofollow noopener"&gt;CoinFinHub&lt;/a&gt;&lt;/coinfinhub-price&gt;</code></pre>
         <p class="cfh-demo-actions"><button id="cfh-demo-copy" type="button">Copy the code</button> <span id="cfh-demo-copied" role="status"></span></p>
       </div>
@@ -231,6 +231,10 @@
       <figure>
         <figcaption><strong>An unknown coin</strong> on its own says so, for the site's author.</figcaption>
         <coinfinhub-price coin="not-a-coin" api="https://sample.invalid"></coinfinhub-price>
+      </figure>
+      <figure>
+        <figcaption><strong>An older answer:</strong> prices more than 3 minutes old say how old they are (here 4 minutes).</figcaption>
+        <coinfinhub-price coin="bitcoin" api="https://sample.invalid/old"></coinfinhub-price>
       </figure>
     </div>
   </section>

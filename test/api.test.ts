@@ -1,9 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { coinLink, getCoins, safeUrl, SITE, type Answer, type Coin, type Coins, type Failure, type Want } from '../src/api';
+import { coinLink, getCoins, logoUrl, siteLink, SITE, type Answer, type Coin, type Coins, type Failure, type Want } from '../src/api';
 import { coinOf, fixture, freshBase, offline, only, queries, respond, stubFetch } from './helpers';
 
-const PRICE_PAGE = /^\/price\/[^/]+$/;
-const LOGO = /^\/coin-logos\//;
 const messageOf = (name: string): string => (fixture(name).error as { message: string }).message;
 
 async function answerFor(name: string, units: Want[] = ['bitcoin'], currency = 'USD', spark = false): Promise<Answer> {
@@ -17,8 +15,8 @@ async function coinsFor(name: string, units: Want[] = ['bitcoin'], currency = 'U
   return answer;
 }
 
-async function failureFor(name: string, units: Want[] = ['bitcoin']): Promise<Failure> {
-  const answer = await answerFor(name, units);
+async function failureFor(name: string, units: Want[] = ['bitcoin'], currency = 'USD'): Promise<Failure> {
+  const answer = await answerFor(name, units, currency);
   if (answer.ok) throw new Error('expected a failure');
   return answer;
 }
@@ -44,7 +42,7 @@ describe('the request', () => {
     await getCoins(base, 'INR', false, ['bitcoin']);
     expect(mock).toHaveBeenCalledTimes(1);
     const [url, init] = mock.mock.calls[0] ?? [];
-    expect(url).toBe(`${base}/api/widget/v1/coins?ids=bitcoin&currency=INR`);
+    expect(url).toBe(`${base}/v1/coins?ids=bitcoin&currency=INR`);
     expect(init?.credentials).toBe('omit');
     expect(init?.method).toBeUndefined();
     expect(init?.headers).toBeUndefined();
@@ -66,9 +64,9 @@ describe('the request', () => {
     await getCoins(base, 'USD', false, [String.fromCharCode(0xd800)]);
     await getCoins(base, 'USD', false, ['top=5&currency=EUR']);
     expect(mock.mock.calls.map(([url]) => url)).toEqual([
-      `${base}/api/widget/v1/coins?ids=a%2Fb%3Fc&currency=U%20S`,
-      `${base}/api/widget/v1/coins?ids=%EF%BF%BD&currency=USD`,
-      `${base}/api/widget/v1/coins?ids=top%3D5%26currency%3DEUR&currency=USD`,
+      `${base}/v1/coins?ids=a%2Fb%3Fc&currency=U%20S`,
+      `${base}/v1/coins?ids=%EF%BF%BD&currency=USD`,
+      `${base}/v1/coins?ids=top%3D5%26currency%3DEUR&currency=USD`,
     ]);
     expect(coinLink(String.fromCharCode(0xdfff))).toBe(`${SITE}/price/%EF%BF%BD`);
   });
@@ -138,9 +136,9 @@ describe('merging', () => {
 
   it('leaves an unreadable coin out of a list, while a widget that asked for it alone fails', async () => {
     stubFetch(() => {
-      const body = fixture('coins-usd') as { coins: { slug: string; display: Record<string, unknown> }[] };
+      const body = fixture('coins-usd') as { coins: { slug: string; price?: number }[] };
       const ethereum = body.coins.find((coin) => coin.slug === 'ethereum');
-      if (ethereum) delete ethereum.display.price;
+      if (ethereum) delete ethereum.price;
       return new Response(JSON.stringify(body));
     });
     const base = freshBase();
@@ -154,8 +152,8 @@ describe('merging', () => {
 
   it('leaves an unreadable coin out of the ranked list', async () => {
     stubFetch(() => {
-      const body = fixture('coins-top') as { coins: { display: Record<string, unknown> }[] };
-      delete body.coins[0]?.display.price;
+      const body = fixture('coins-top') as { coins: { price?: number }[] };
+      delete body.coins[0]?.price;
       return new Response(JSON.stringify(body));
     });
     const answer = await getCoins(freshBase(), 'USD', false, [3]);
@@ -171,9 +169,7 @@ describe('merging', () => {
 });
 
 describe('a 200 answer', () => {
-  it('gives the coins of the contract example', async () => {
-    const bitcoin = coinOf('coins-usd', 'bitcoin');
-    const ethereum = coinOf('coins-usd', 'ethereum');
+  it('gives the coins of the contract example, written for the widgets', async () => {
     expect(await coinsFor('coins-usd', ['bitcoin', 'ethereum'])).toEqual({
       ok: true,
       currency: 'USD',
@@ -183,17 +179,17 @@ describe('a 200 answer', () => {
           slug: 'bitcoin',
           name: 'Bitcoin',
           symbol: 'BTC',
-          logo: 'https://www.coinfinhub.com/coin-logos/small/bitcoin.png?v=1',
-          price: bitcoin.display.price,
-          value: bitcoin.price,
-          change: bitcoin.display.change,
+          logo: 'https://cdn.coinfinhub.com/coin-logos/small/bitcoin.png?v=1',
+          price: '$86,091.97',
+          value: 86091.97,
+          change: '−0.01%',
           direction: 'down',
           badge: null,
           url: 'https://www.coinfinhub.com/price/bitcoin',
           updatedAt: Date.parse('2026-10-06T10:55:01.352Z'),
           spark: null,
         },
-        expect.objectContaining({ slug: 'ethereum', logo: null, direction: 'down', change: ethereum.display.change }),
+        expect.objectContaining({ slug: 'ethereum', logo: null, price: '$2,714.91', direction: 'down', change: '−0.01%' }),
       ],
     });
   });
@@ -202,7 +198,30 @@ describe('a 200 answer', () => {
     const answer = await coinsFor('coins-inr', ['bitcoin'], 'INR');
     expect(answer.currency).toBe('INR');
     expect(answer.rate).toBe('USD rate derived from ECB data');
-    expect(answer.coins[0]?.price).toBe(coinOf('coins-inr', 'bitcoin').display.price);
+    expect(answer.coins[0]?.price).toBe('₹82,99,733.90');
+  });
+
+  it('has no rate label in US dollars, and never shows prices in another currency than asked', async () => {
+    expect((await coinsFor('coins-usd', ['bitcoin'])).rate).toBeNull();
+    expect((await failureFor('coins-usd', ['bitcoin'], 'EUR')).code).toBe('bad_response');
+    expect((await coinsFor('coins-missing-fields', ['solana'], 'EUR')).coins[0]?.price).toBe('€162.08');
+  });
+
+  it('takes a link to any page on www and a logo from any coinfinhub.com host; otherwise the coin page and the letter', async () => {
+    stubFetch(() => {
+      const body = fixture('coins-usd') as { coins: { slug: string; url: string; logo: string | null }[] };
+      const [bitcoin, ethereum] = body.coins;
+      if (!bitcoin || !ethereum) throw new Error('no coins');
+      Object.assign(bitcoin, { url: 'https://www.coinfinhub.com/de/price/bitcoin', logo: 'https://cdn.coinfinhub.com/coin-logos/small/bitcoin.png?v=2' });
+      Object.assign(ethereum, { url: 'https://www.coinfinhub.com/price/ethereum?ref=x', logo: 'https://coinfinhub.com.evil.com/coin-logos/e.png' });
+      return new Response(JSON.stringify(body));
+    });
+    const answer = await getCoins(freshBase(), 'USD', false, ['bitcoin', 'ethereum']);
+    if (!answer.ok) throw new Error('expected coins');
+    expect(answer.coins.map(({ url, logo }) => [url, logo])).toEqual([
+      ['https://www.coinfinhub.com/de/price/bitcoin', 'https://cdn.coinfinhub.com/coin-logos/small/bitcoin.png?v=2'],
+      ['https://www.coinfinhub.com/price/ethereum', null],
+    ]);
   });
 
   it('keeps the order asked and leaves missing coins out', async () => {
@@ -221,7 +240,7 @@ describe('a 200 answer', () => {
 
   it('reads the 7-day line', async () => {
     const coin = await firstCoin('coins-spark', ['bitcoin'], true);
-    expect(coin.spark).toEqual((coinOf('coins-spark', 'bitcoin') as unknown as { sparkline7d: number[] }).sparkline7d);
+    expect(coin.spark).toEqual(coinOf('coins-spark', 'bitcoin').sparkline7d);
   });
 
   it('keeps only numbers from the line, at most 200 of them, and drops a line of one point', async () => {
@@ -249,26 +268,36 @@ describe('a 200 answer', () => {
     ]);
   });
 
+  it('says only "No trades" when it has no day for it', async () => {
+    stubFetch(() => {
+      const body = fixture('coins-usd') as { coins: { slug: string; stoppedAt: unknown }[] };
+      for (const coin of body.coins) coin.stoppedAt = coin.slug === 'haltcoin' ? 'yesterday' : null;
+      return new Response(JSON.stringify(body));
+    });
+    const answer = await getCoins(freshBase(), 'USD', false, ['haltcoin']);
+    expect(answer.ok && answer.coins[0]?.badge).toBe('No trades');
+  });
+
   it('drops a change the server sends for a stopped coin anyway', async () => {
     stubFetch(() => {
-      const body = fixture('coins-usd') as { coins: { slug: string; display: Record<string, unknown> }[] };
+      const body = fixture('coins-usd') as { coins: { slug: string; change24h: number | null }[] };
       const halted = body.coins.find((coin) => coin.slug === 'haltcoin');
-      if (halted) Object.assign(halted.display, { change: '+1.00%', direction: 'up' });
+      if (halted) halted.change24h = 1;
       return new Response(JSON.stringify(body));
     });
     const answer = await getCoins(freshBase(), 'USD', false, ['haltcoin']);
     expect(answer.ok && [answer.coins[0]?.change, answer.coins[0]?.direction]).toEqual([null, null]);
   });
 
-  it('passes unknown values through and ignores unknown fields', async () => {
+  it('falls back safely on unknown values and ignores unknown fields', async () => {
     const coin = await firstCoin('coins-unknown-values');
-    expect(coin).toMatchObject({ direction: 'sideways', badge: 'Paused', logo: null, updatedAt: null });
+    expect(coin).toMatchObject({ price: '$86,091.97', change: '−1.34%', direction: 'down', badge: null, logo: null, updatedAt: null });
     expect(Object.keys(coin).sort()).toEqual(
       ['badge', 'change', 'direction', 'logo', 'name', 'price', 'slug', 'spark', 'symbol', 'updatedAt', 'url', 'value'].sort(),
     );
   });
 
-  it('needs only the slug, the name and the display price', async () => {
+  it('needs only the slug, the name and the price', async () => {
     expect(await coinsFor('coins-missing-fields', ['solana'])).toEqual({
       ok: true,
       currency: 'USD',
@@ -280,7 +309,7 @@ describe('a 200 answer', () => {
           symbol: '',
           logo: null,
           price: '$162.08',
-          value: null,
+          value: 162.08,
           change: null,
           direction: null,
           badge: null,
@@ -292,8 +321,13 @@ describe('a 200 answer', () => {
     });
   });
 
-  it('is a failure for a coin without a display price, or a body without coins', async () => {
+  it('is a failure for a coin without a price above 0, or a body without coins', async () => {
     expect((await failureFor('bad-no-price')).code).toBe('bad_response');
+    for (const price of [0, -1, '86091.97', null]) {
+      stubFetch(() => new Response(JSON.stringify({ coins: [{ slug: 'bitcoin', name: 'Bitcoin', price }] })));
+      const odd = await getCoins(freshBase(), 'USD', false, ['bitcoin']);
+      expect(!odd.ok && odd.code, String(price)).toBe('bad_response');
+    }
     stubFetch(() => new Response(JSON.stringify({ coin: { name: 'Bitcoin' } })));
     const answer = await getCoins(freshBase(), 'USD', false, ['bitcoin']);
     expect(!answer.ok && answer.code).toBe('bad_response');
@@ -307,10 +341,11 @@ describe('a 200 answer', () => {
     expect(coin.url).toBe('https://www.coinfinhub.com/price/hostile');
     expect(coin.logo).toBeNull();
     expect(coin.spark).toEqual([1, 2]);
+    expect(coin.badge).toBeNull();
   });
 
   it('cuts absurdly long text', async () => {
-    stubFetch(() => new Response(JSON.stringify({ coins: [{ slug: 'long', name: 'x'.repeat(5000), display: { price: '$1' } }] })));
+    stubFetch(() => new Response(JSON.stringify({ coins: [{ slug: 'long', name: 'x'.repeat(5000), price: 1 }] })));
     const answer = await getCoins(freshBase(), 'USD', false, ['long']);
     expect(answer.ok && answer.coins[0]?.name.length).toBe(1000);
   });
@@ -326,6 +361,7 @@ describe('an error answer', () => {
     ['error-prices-unavailable', 'prices_unavailable', 60],
     ['error-rate-unavailable', 'rate_unavailable', 600],
     ['error-widget-off', 'widget_off', 300],
+    ['error-site-blocked', 'site_blocked', null],
     ['error-unknown-code', 'maintenance_window', null],
   ])('%s gives its code, message and retryAfter', async (name, code, retryAfter) => {
     const failure = await failureFor(name);
@@ -428,49 +464,80 @@ describe('the floor', () => {
   });
 });
 
-describe('the link and logo guard', () => {
+describe('the link guard', () => {
   it.each([
-    'https://www.coinfinhub.com/price/bitcoin',
-    'https://WWW.COINFINHUB.COM/price/bitcoin',
-    'https://www.coinfinhub.com:443/price/bitcoin',
-  ])('keeps the link %s', (url) => {
-    expect(safeUrl(url, PRICE_PAGE)).toBe('https://www.coinfinhub.com/price/bitcoin');
+    ['https://www.coinfinhub.com/price/bitcoin', 'https://www.coinfinhub.com/price/bitcoin'],
+    ['https://WWW.COINFINHUB.COM/price/bitcoin', 'https://www.coinfinhub.com/price/bitcoin'],
+    ['https://www.coinfinhub.com:443/price/bitcoin', 'https://www.coinfinhub.com/price/bitcoin'],
+    ['https://www.coinfinhub.com', 'https://www.coinfinhub.com/'],
+    ['https://www.coinfinhub.com/de/price/bitcoin', 'https://www.coinfinhub.com/de/price/bitcoin'],
+    ['https://www.coinfinhub.com/coins/bitcoin/markets', 'https://www.coinfinhub.com/coins/bitcoin/markets'],
+    ['https://www.coinfinhub.com/price/../exchanges', 'https://www.coinfinhub.com/exchanges'],
+  ])('keeps %s: any page on www', (url, kept) => {
+    expect(siteLink(url)).toBe(kept);
   });
 
   it.each([
     'javascript:alert(1)',
     'http://www.coinfinhub.com/price/bitcoin',
     'https://coinfinhub.com/price/bitcoin',
+    'https://cdn.coinfinhub.com/price/bitcoin',
     'https://www.coinfinhub.com.example.com/price/bitcoin',
     'https://www.coinfinhub.com:8443/price/bitcoin',
     'https://user:pass@www.coinfinhub.com/price/bitcoin',
+    'https://user@www.coinfinhub.com/price/bitcoin',
     'https://www.coinfinhub.com/price/bitcoin?ref=widget',
+    'https://www.coinfinhub.com/go?to=https://example.com',
     'https://www.coinfinhub.com/price/bitcoin#top',
-    'https://www.coinfinhub.com/price/',
-    'https://www.coinfinhub.com/price/a/b',
-    'https://www.coinfinhub.com/price/../admin',
-    'https://www.coinfinhub.com/price/%2e%2e/admin',
-    'https://www.coinfinhub.com/exchanges',
+    '//www.coinfinhub.com/price/bitcoin',
     '/price/bitcoin',
     '',
     42,
     null,
   ])('refuses the link %s', (url) => {
-    expect(safeUrl(url, PRICE_PAGE)).toBeNull();
+    expect(siteLink(url)).toBeNull();
+  });
+});
+
+describe('the logo guard', () => {
+  it.each([
+    'https://www.coinfinhub.com/coin-logos/small/bitcoin.png?v=1',
+    'https://cdn.coinfinhub.com/coin-logos/small/bitcoin.png?v=1',
+    'https://img.coinfinhub.com/coin-logos/small/bitcoin.png',
+    'https://coinfinhub.com/coin-logos/bitcoin.svg',
+    'https://edge.cdn.coinfinhub.com/coin-logos/large/bitcoin.webp',
+  ])('keeps %s: /coin-logos/ on any coinfinhub.com host', (url) => {
+    expect(logoUrl(url)).toBe(url);
   });
 
-  it('keeps a logo on CoinFinHub, with its version query, and refuses any other', () => {
-    expect(safeUrl('https://www.coinfinhub.com/coin-logos/small/bitcoin.png?v=1', LOGO, true)).toBe(
-      'https://www.coinfinhub.com/coin-logos/small/bitcoin.png?v=1',
-    );
-    for (const url of [
-      'https://cdn.example.com/coin-logos/small/bitcoin.png',
-      'https://www.coinfinhub.com/coin-logos/../admin.png',
-      'https://www.coinfinhub.com/uploads/x.png',
-      'data:image/svg+xml,<svg onload=alert(1)>',
-      'https://www.coinfinhub.com/coin-logos/a.png#x',
-    ]) {
-      expect(safeUrl(url, LOGO, true), url).toBeNull();
-    }
+  it('keeps the address as the browser writes it', () => {
+    expect(logoUrl('https://CDN.CoinFinHub.com:443/coin-logos/a.png')).toBe('https://cdn.coinfinhub.com/coin-logos/a.png');
+  });
+
+  it.each([
+    'https://coinfinhub.com.evil.com/coin-logos/bitcoin.png',
+    'https://cdn.coinfinhub.com.evil.com/coin-logos/bitcoin.png',
+    'https://evilcoinfinhub.com/coin-logos/bitcoin.png',
+    'https://cdn.evilcoinfinhub.com/coin-logos/bitcoin.png',
+    'https://cdn.coinfinhub.com./coin-logos/bitcoin.png',
+    'https://cdn.example.com/coin-logos/small/bitcoin.png',
+    'http://cdn.coinfinhub.com/coin-logos/bitcoin.png',
+    'http://coinfinhub.com/coin-logos/bitcoin.png',
+    'https://cdn.coinfinhub.com:8443/coin-logos/bitcoin.png',
+    'https://user:pass@cdn.coinfinhub.com/coin-logos/bitcoin.png',
+    'https://user@cdn.coinfinhub.com/coin-logos/bitcoin.png',
+    'https://cdn.coinfinhub.com%2F@evil.com/coin-logos/bitcoin.png',
+    'https://www.coinfinhub.com/coin-logos/../admin.png',
+    'https://www.coinfinhub.com/uploads/x.png',
+    'https://www.coinfinhub.com/coin-logos',
+    'https://cdn.coinfinhub.com/coin-logos/a.png#x',
+    'data:image/svg+xml,<svg onload=alert(1)>',
+    'javascript:alert(1)',
+    '/coin-logos/bitcoin.png',
+    '',
+    42,
+    null,
+  ])('refuses the logo %s', (url) => {
+    expect(logoUrl(url)).toBeNull();
   });
 });

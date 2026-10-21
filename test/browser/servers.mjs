@@ -1,8 +1,8 @@
 // Two local servers for the demo and the browser tests, on purpose on two origins:
 //   http://localhost:4173  the pages: docs/ at /, dist/ at /dist/, the fixtures at /fixtures/
 //                          (the layout the Pages workflow publishes), plus /blank.html and /csp.html
-//   http://127.0.0.1:4174  a mock of the widget's endpoint, answering from test/fixtures (docs/mock.js),
-//                          with /__calls?ns=… listing the queries the widgets sent under /{ns}/api/…
+//   http://127.0.0.1:4174  a mock of the widgets' endpoint, /v1/coins, answering from test/fixtures (docs/mock.js),
+//                          with /__calls?ns=… listing the queries the widgets sent under /{ns}/v1/…
 // Run with `npm run serve`; Playwright starts it by itself. CFH_PAGES_PORT and CFH_API_PORT change the ports.
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
@@ -29,8 +29,9 @@ const MOUNTS = [
 const BLANK =
   '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Widget test page</title><link rel="icon" href="data:,">' +
   '<script type="module" src="/dist/coinfinhub-widget.js"></script></head><body><main></main></body></html>';
-// A strict policy: no inline styles or scripts, logos only from CoinFinHub, and calls only to the mock API.
-const STRICT = `default-src 'none'; script-src 'self'; style-src 'self'; img-src data: https://www.coinfinhub.com; connect-src http://127.0.0.1:${API}`;
+// A strict policy: no inline styles or scripts, logos only from CoinFinHub's cdn host (and data: for the page's
+// own empty icon), and calls only to the mock API.
+const STRICT = `default-src 'none'; script-src 'self'; style-src 'self'; img-src data: https://cdn.coinfinhub.com; connect-src http://127.0.0.1:${API}`;
 
 createServer((request, response) => {
   void (async () => {
@@ -58,7 +59,7 @@ createServer((request, response) => {
   })();
 }).listen(PAGES, 'localhost');
 
-/** The queries sent so far, by the path segment before /api/ ("" for none). */
+/** The queries sent so far, by the path segment before /v1/ ("" for none). */
 const calls = new Map();
 const load = async (name) => JSON.parse(await readFile(join(ROOT, 'test', 'fixtures', `${name}.json`), 'utf8'));
 
@@ -75,7 +76,7 @@ createServer((request, response) => {
       response.writeHead(405, cors).end();
       return;
     }
-    const ns = /^\/([^/]+)\/api\//.exec(url.pathname)?.[1] ?? '';
+    const ns = /^\/([^/]+)\/v1\//.exec(url.pathname)?.[1] ?? '';
     const sent = calls.get(ns) ?? [];
     calls.set(ns, sent);
     sent.push(url.search);

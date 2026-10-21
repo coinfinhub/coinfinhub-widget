@@ -1,25 +1,33 @@
 /**
- * Talks to the widget's endpoint, GET /api/widget/v1/coins. Every widget on the page goes through here:
- * coins asked for in the same tick with the same currency and line are merged into one call (at most 20
- * per call), each coin is asked for at most once a minute, and answers are checked field by field so a
- * bad or newer response can never break the page it sits on.
+ * Talks to the widgets' endpoint, GET https://widgets.coinfinhub.com/v1/coins. Every widget on the page goes
+ * through here: coins asked for in the same tick with the same currency and line are merged into one call (at
+ * most 20 per call), each coin is asked for at most once a minute, and answers are checked field by field so a
+ * bad or newer response can never break the page it sits on. The endpoint sends numbers and codes only; the
+ * text each coin shows is written here, once per answer (src/format.ts).
  */
+import { formatAmount, formatChange, formatDay } from './format';
 
+/** CoinFinHub's site: the coins' pages and the home page, where the links go. */
 export const SITE = 'https://www.coinfinhub.com';
+/** The widgets' own host, which every request goes to. The api attribute replaces it, for development and tests. */
+export const API = 'https://widgets.coinfinhub.com';
 
-/** One coin as a widget shows it. Display text comes ready-made from the server. */
+/** One coin as a widget shows it, its text written from the answer's numbers. */
 export interface Coin {
   slug: string;
   name: string;
   symbol: string;
-  /** A logo on www.coinfinhub.com, or null for the lettered circle. */
+  /** A logo under /coin-logos/ on a coinfinhub.com host, or null for the lettered circle. */
   logo: string | null;
-  /** The display price, "$88,888.00". */
+  /** The price as shown, "$86,091.97". */
   price: string;
-  /** The price as a number, for the converter's maths; null when the body has none. */
-  value: number | null;
+  /** The price as a number, for the converter's maths. */
+  value: number;
+  /** "+2.80%", "−1.34%" or "0.00%"; null when unknown or the coin stopped trading. */
   change: string | null;
+  /** up, down or flat, as the change shows; null without a change. */
   direction: string | null;
+  /** "Little trading", "No trades since 1 Oct 2026", or null. */
   badge: string | null;
   url: string;
   updatedAt: number | null;
@@ -120,7 +128,8 @@ async function call(group: string, units: [string, (unit: Unit) => void][]): Pro
   const [base = '', suffix = ''] = group.split(' ');
   const ranked = !units[0]?.[0];
   const query = ranked ? `top=${String(PER_CALL)}` : `ids=${units.map(([slug]) => encode(slug)).join(',')}`;
-  const answer = await request(`${base}/api/widget/v1/coins?${query}${suffix}`);
+  const currency = new URLSearchParams(suffix).get('currency') ?? '';
+  const answer = await request(`${base}/v1/coins?${query}${suffix}`, currency);
   if (!answer.ok) {
     for (const [, settle] of units) settle(answer);
     return;
@@ -174,7 +183,8 @@ const hold = (unit: Unit): number => (unit.ok ? MINUTE : (unit.retryAfter ?? 0) 
 
 type Body = { ok: true; coins: Map<string, Coin | null>; rate: string | null } | Failure;
 
-async function request(url: string): Promise<Body> {
+/** The answer to one call, its coins written for `currency`, the currency asked for. */
+async function request(url: string, currency: string): Promise<Body> {
   let response: Response;
   try {
     // A simple GET with no custom headers, so the browser never sends a CORS preflight.
@@ -191,12 +201,15 @@ async function request(url: string): Promise<Body> {
   const b = record(body);
   if (response.ok) {
     if (!Array.isArray(b?.coins)) return fail('bad_response');
+    // Prices in another currency than the one asked for would get the wrong sign: never shown.
+    if (typeof b.currency === 'string' && b.currency.toUpperCase() !== currency) return fail('bad_response');
     const coins = new Map<string, Coin | null>();
     for (const item of b.coins as unknown[]) {
       const slug = text(record(item)?.slug);
-      if (slug && !coins.has(slug)) coins.set(slug, readCoin(item, slug));
+      if (slug && !coins.has(slug)) coins.set(slug, readCoin(item, slug, currency));
     }
-    return { ok: true, coins, rate: text(record(b.display)?.rate) };
+    // Any rate means the prices were converted from US dollars with CoinFinHub's ECB-derived rate.
+    return { ok: true, coins, rate: record(b.rate) ? 'USD rate derived from ECB data' : null };
   }
   const error = record(b?.error);
   const retryAfter = error?.retryAfter;
@@ -211,28 +224,38 @@ async function request(url: string): Promise<Body> {
 
 const fail = (code: string): Failure => ({ ok: false, code, message: null, retryAfter: null });
 
-/** Reads one coin. The name and the display price are required; anything else may be missing. */
-function readCoin(item: unknown, slug: string): Coin | null {
+/**
+ * Reads one coin and writes its text. The name and a price above 0 are required; anything else may be missing,
+ * and a value the widget doesn't know (a later trading state) is left out.
+ */
+function readCoin(item: unknown, slug: string, currency: string): Coin | null {
   const c = record(item) ?? {};
-  const d = record(c.display);
   const name = text(c.name);
-  const price = text(d?.price);
-  if (!d || !name || !price) return null;
+  const value = isNumber(c.price) && c.price > 0 ? c.price : 0;
+  if (!name || !value) return null;
+  let price: string;
+  try {
+    price = formatAmount(value, currency, 'price');
+  } catch {
+    return null; // A currency code Intl can't write.
+  }
   const updatedAt = typeof c.updatedAt === 'string' ? Date.parse(c.updatedAt) : NaN;
   const line = Array.isArray(c.sparkline7d) ? (c.sparkline7d as unknown[]).filter(isNumber).slice(-POINTS) : [];
   // A stopped coin has no 24h change, whatever the body says.
   const stopped = c.trading === 'stopped';
+  const change = !stopped && isNumber(c.change24h) ? formatChange(c.change24h) : null;
+  const since = formatDay(c.stoppedAt);
   return {
     slug,
     name,
     symbol: text(c.symbol) ?? '',
-    logo: safeUrl(c.logo, /^\/coin-logos\//, true),
+    logo: logoUrl(c.logo),
     price,
-    value: isNumber(c.price) && c.price > 0 ? c.price : null,
-    change: stopped ? null : text(d.change),
-    direction: stopped ? null : text(d.direction),
-    badge: text(d.badge),
-    url: safeUrl(c.url, /^\/price\/[^/]+$/) ?? coinLink(slug),
+    value,
+    change: change?.[0] ?? null,
+    direction: change?.[1] ?? null,
+    badge: c.trading === 'low' ? 'Little trading' : stopped ? (since ? `No trades since ${since}` : 'No trades') : null,
+    url: siteLink(c.url) ?? coinLink(slug),
     updatedAt: Number.isNaN(updatedAt) ? null : updatedAt,
     spark: line.length > 1 ? line : null,
   };
@@ -240,20 +263,34 @@ function readCoin(item: unknown, slug: string): Coin | null {
 
 const isNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
-/**
- * A URL on https://www.coinfinhub.com whose path matches, with no login part (and no query or fragment
- * unless allowed: a logo's "?v=1"); anything else is null.
- */
-export function safeUrl(value: unknown, path: RegExp, query = false): string | null {
+/** An absolute URL with no login part and no fragment; anything else is null. */
+function parse(value: unknown): URL | null {
   try {
     const url = new URL(typeof value === 'string' ? value : '');
-    if (url.origin === SITE && path.test(url.pathname) && !url.username && !url.password && (query || !url.search) && !url.hash) {
-      return url.href;
-    }
+    return url.username || url.password || url.hash ? null : url;
   } catch {
-    // Not a URL at all.
+    return null; // Not a URL at all.
   }
-  return null;
+}
+
+/**
+ * Any page on https://www.coinfinhub.com, without a query, so coin pages can move without breaking pinned
+ * embeds; anything else is null.
+ */
+export function siteLink(value: unknown): string | null {
+  const url = parse(value);
+  return url?.origin === SITE && !url.search ? url.href : null;
+}
+
+/**
+ * A logo under /coin-logos/ on https://coinfinhub.com or any https://*.coinfinhub.com (www, cdn, a later image
+ * host), on the default port, its version query allowed ("?v=1"); anything else is null.
+ */
+export function logoUrl(value: unknown): string | null {
+  const url = parse(value);
+  return url?.protocol === 'https:' && !url.port && /(?:^|\.)coinfinhub\.com$/.test(url.hostname) && url.pathname.startsWith('/coin-logos/')
+    ? url.href
+    : null;
 }
 
 function record(value: unknown): Record<string, unknown> | null {

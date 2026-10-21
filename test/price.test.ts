@@ -3,6 +3,7 @@ import '../src/coinfinhub-widget';
 import {
   coinOf,
   fixture,
+  footText,
   freshBase,
   link,
   mount,
@@ -12,7 +13,6 @@ import {
   part,
   parts,
   queries,
-  rateText,
   respond,
   screen,
   scroll,
@@ -28,7 +28,9 @@ import {
 
 const SECOND = 1_000;
 const MINUTE = 60_000;
-const BITCOIN = coinOf('coins-usd', 'bitcoin').display;
+const HOUR = 60 * MINUTE;
+/** coins-usd's bitcoin as the widgets write it. */
+const BITCOIN = { price: '$86,091.97', change: '−0.01%' };
 
 useWidgetSetup();
 
@@ -76,16 +78,16 @@ describe('states', () => {
     expect(part(element, '.cfh-name').textContent).toBe('Bitcoin');
     expect(part(element, '.cfh-sym').textContent).toBe('BTC');
     expect(part(element, '.cfh-price').textContent).toBe(BITCOIN.price);
-    expect(change(element).textContent).toBe(`▼ ${String(BITCOIN.change)} 24h`);
+    expect(change(element).textContent).toBe(`▼ ${BITCOIN.change} 24h`);
     expect(change(element).className).toBe('cfh-chg cfh-down');
     expect(change(element).firstElementChild?.getAttribute('aria-hidden')).toBe('true');
     const image = part(element, '.cfh-logo img') as HTMLImageElement;
-    expect(image.getAttribute('src')).toBe('https://www.coinfinhub.com/coin-logos/small/bitcoin.png?v=1');
+    expect(image.getAttribute('src')).toBe('https://cdn.coinfinhub.com/coin-logos/small/bitcoin.png?v=1');
     expect(image.alt).toBe('');
     expect(logo(element).getAttribute('aria-hidden')).toBe('true');
     expect(shown(part(element, '.cfh-badge'))).toBe(false);
     expect(shown(part(element, '.cfh-chart'))).toBe(false);
-    expect(rateText(element)).toBe('');
+    expect(footText(element)).toBe('');
     expect(shown(part(element, '.cfh-note'))).toBe(false);
     expect(shown(part(element, '.cfh-status'))).toBe(false);
     expect(link(element).href).toBe('https://www.coinfinhub.com/price/bitcoin');
@@ -127,8 +129,8 @@ describe('states', () => {
   it('carries the rate label in another currency', async () => {
     always('coins-inr');
     const element = await price({ coin: 'bitcoin', currency: 'inr', api: freshBase() });
-    expect(part(element, '.cfh-price').textContent).toBe(coinOf('coins-inr', 'bitcoin').display.price);
-    expect(rateText(element)).toBe('· USD rate derived from ECB data');
+    expect(part(element, '.cfh-price').textContent).toBe('₹82,99,733.90');
+    expect(footText(element)).toBe('USD rate derived from ECB data');
   });
 
   it('shows a badge for little trading', async () => {
@@ -136,14 +138,16 @@ describe('states', () => {
     const element = await price({ coin: 'quietcoin', api: freshBase() });
     expect(part(element, '.cfh-badge').textContent).toBe('Little trading');
     expect(shown(part(element, '.cfh-badge'))).toBe(true);
-    expect(change(element).textContent).toBe(`▼ ${String(coinOf('coins-usd', 'quietcoin').display.change)} 24h`);
+    expect(part(element, '.cfh-price').textContent).toBe('$0.0123');
+    expect(change(element).textContent).toBe('▼ −0.07% 24h');
   });
 
   it('shows a change of 0.00% with a dot and no colour of up or down', async () => {
     stubFetch(() => {
-      const body = fixture('coins-usd') as { coins: { display: Record<string, unknown> }[] };
+      const body = fixture('coins-usd') as { coins: { change24h: number | null }[] };
       const [bitcoin] = body.coins;
-      if (bitcoin) Object.assign(bitcoin.display, { change: '0.00%', direction: 'flat' });
+      // Rounds to 0.00%: flat, whatever its sign.
+      if (bitcoin) bitcoin.change24h = -0.004;
       return new Response(JSON.stringify(body));
     });
     const element = await price({ coin: 'bitcoin', api: freshBase() });
@@ -154,7 +158,7 @@ describe('states', () => {
   it('shows a stopped coin with its badge and no change', async () => {
     stubFetch((url) => only(['coins-usd'], url));
     const element = await price({ coin: 'haltcoin', api: freshBase() });
-    expect(part(element, '.cfh-price').textContent).toBe(coinOf('coins-usd', 'haltcoin').display.price);
+    expect(part(element, '.cfh-price').textContent).toBe('$0.456');
     expect(part(element, '.cfh-badge').textContent).toBe('No trades since 1 Oct 2026');
     expect(shown(change(element))).toBe(false);
   });
@@ -163,9 +167,9 @@ describe('states', () => {
     always('coins-unknown-values');
     const element = await price({ coin: 'bitcoin', api: freshBase() });
     expect(state(element)).toBe('data');
-    expect(change(element).className).toBe('cfh-chg');
-    expect(change(element).textContent).toBe(' −1.34% 24h');
-    expect(part(element, '.cfh-badge').textContent).toBe('Paused');
+    expect(change(element).className).toBe('cfh-chg cfh-down');
+    expect(change(element).textContent).toBe('▼ −1.34% 24h');
+    expect(shown(part(element, '.cfh-badge'))).toBe(false);
     expect(logo(element).textContent).toBe('B');
     expect(element.shadowRoot?.textContent).not.toContain('New in v1.1');
   });
@@ -179,7 +183,7 @@ describe('states', () => {
     expect(logo(element).textContent).toBe('S');
     expect(shown(change(element))).toBe(false);
     expect(shown(part(element, '.cfh-badge'))).toBe(false);
-    expect(rateText(element)).toBe('');
+    expect(footText(element)).toBe('');
     expect(link(element).href).toBe('https://www.coinfinhub.com/price/solana');
   });
 
@@ -192,10 +196,13 @@ describe('states', () => {
     expect([...(root?.querySelectorAll('svg') ?? [])].map((node) => node.getAttribute('class'))).toEqual(['cfh-spark cfh-up', 'cfh-mark']);
     expect(root?.querySelectorAll('a')).toHaveLength(1);
     expect(part(element, '.cfh-name').textContent).toBe('<img src=x onerror=alert(1)>');
-    expect(part(element, '.cfh-price').textContent).toBe('<b>$1.00</b>');
-    expect(part(element, '.cfh-badge').textContent).toBe('<em>badge</em>');
-    expect(rateText(element)).toBe('· <style>*{display:none}</style>');
-    expect(change(element).className).toBe('cfh-chg');
+    expect(part(element, '.cfh-sym').textContent).toBe('"><svg onload=alert(1)>');
+    expect(part(element, '.cfh-price').textContent).toBe('$1.00');
+    expect(shown(part(element, '.cfh-badge'))).toBe(false);
+    // Only the widget's own words from the rate, whatever it holds.
+    expect(footText(element)).toBe('USD rate derived from ECB data');
+    expect(root?.textContent).not.toMatch(/<style>|<b>|<i>|<script>/);
+    expect(change(element).className).toBe('cfh-chg cfh-up');
     expect(link(element).href).toBe('https://www.coinfinhub.com/price/hostile');
   });
 
@@ -220,7 +227,7 @@ describe('the 7-day line', () => {
     expect(line.getAttribute('class')).toBe('cfh-spark cfh-up');
     expect(line.getAttribute('role')).toBe('img');
     expect(line.getAttribute('aria-label')).toBe('Price over 7 days, up');
-    const week = (coinOf('coins-spark', 'bitcoin') as unknown as { sparkline7d: number[] }).sparkline7d;
+    const week = coinOf('coins-spark', 'bitcoin').sparkline7d ?? [];
     expect(part(bitcoin, '.cfh-line').getAttribute('points')?.split(' ')).toHaveLength(week.length);
     expect(part(bitcoin, '.cfh-area').getAttribute('points')).toMatch(/^0,32 0,[\d.]+ .* 120,32$/);
     expect(part(bitcoin, '.cfh-chart .cfh-per').textContent).toBe('7d');
@@ -301,7 +308,7 @@ describe('errors', () => {
     expect(link(currency).href).toBe('https://www.coinfinhub.com/price/bitcoin');
   });
 
-  it.each(['error-widget-off', 'error-prices-unavailable', 'error-rate-limited', 'error-unknown-code'])(
+  it.each(['error-widget-off', 'error-prices-unavailable', 'error-rate-limited'])(
     '%s shows the plain error',
     async (name) => {
       always(name);
@@ -311,6 +318,34 @@ describe('errors', () => {
       expect(link(element).href).toBe('https://www.coinfinhub.com/price/bitcoin');
     },
   );
+
+  it("shows the server's message for a code it doesn't know", async () => {
+    always('error-unknown-code');
+    const element = await price({ coin: 'bitcoin', api: freshBase() });
+    expect(state(element)).toBe('error');
+    expect(statusText(element)).toBe((fixture('error-unknown-code').error as { message: string }).message);
+    expect(link(element).href).toBe('https://www.coinfinhub.com/price/bitcoin');
+  });
+
+  it("says why a blocked site's widgets show nothing, as the server words it", async () => {
+    always('error-site-blocked');
+    const element = await mount('coinfinhub-list', { top: '3', api: freshBase() });
+    expect(state(element)).toBe('error');
+    expect(statusText(element)).toBe('This site may not show CoinFinHub prices.');
+    expect(link(element).href).toBe('https://www.coinfinhub.com/');
+  });
+
+  it("writes an unknown code's message as text, and the plain error when there is none", async () => {
+    const message = 'Blocked. <a href="https://example.com">Why?</a>';
+    let body: unknown = { error: { status: 403, code: 'site_blocked', message } };
+    stubFetch(() => new Response(JSON.stringify(body), { status: 403 }));
+    const element = await mount('coinfinhub-list', { top: '3', api: freshBase() });
+    expect(statusText(element)).toBe(message);
+    expect(element.shadowRoot?.querySelectorAll('a')).toHaveLength(1);
+    body = { error: { status: 403, code: 'site_blocked' } };
+    const bare = await mount('coinfinhub-list', { top: '3', api: freshBase() });
+    expect(statusText(bare)).toBe('Prices unavailable right now.');
+  });
 
   it('never rewrites the status on a refresh, so nothing is announced again', async () => {
     always('error-widget-off');
@@ -386,6 +421,7 @@ describe('refresh', () => {
     expect(state(element)).toBe('error');
     expect(statusText(element)).toBe('Price unavailable right now.');
     expect(shown(part(element, '.cfh-note'))).toBe(false);
+    expect(footText(element)).toBe('');
     expect(link(element).href).toBe('https://www.coinfinhub.com/price/bitcoin');
   });
 
@@ -486,7 +522,7 @@ describe('requests', () => {
   });
 
   it('asks for each coin and currency at most once a minute, however often attributes change', async () => {
-    const mock = always('coins-usd');
+    const mock = stubFetch((url) => respond(url.searchParams.get('currency') === 'INR' ? 'coins-inr' : 'coins-usd'));
     const element = await price({ coin: 'bitcoin', api: freshBase() });
     for (const currency of ['INR', 'USD', 'INR', 'USD', 'INR']) {
       element.setAttribute('currency', currency);
@@ -507,13 +543,17 @@ describe('requests', () => {
     expect(queries(mock)).toEqual(['ids=bitcoin&currency=USD', 'ids=ethereum&currency=USD']);
   });
 
-  it('uses the real endpoint when api is not an http(s) URL, and trims slashes', async () => {
+  it('asks widgets.coinfinhub.com, also when api is not an http(s) URL, or the api given, without its trailing slashes', async () => {
     const mock = always('coins-usd');
+    await price({ coin: 'default-test' });
     await price({ coin: 'guard-test', api: 'javascript:alert(1)' });
+    await price({ coin: 'bitcoin', api: 'http://localhost:8090/api/widget/' });
     await price({ coin: 'bitcoin', api: 'https://slashes.test//' });
     expect(mock.mock.calls.map(([url]) => url)).toEqual([
-      'https://www.coinfinhub.com/api/widget/v1/coins?ids=guard-test&currency=USD',
-      'https://slashes.test/api/widget/v1/coins?ids=bitcoin&currency=USD',
+      'https://widgets.coinfinhub.com/v1/coins?ids=default-test&currency=USD',
+      'https://widgets.coinfinhub.com/v1/coins?ids=guard-test&currency=USD',
+      'http://localhost:8090/api/widget/v1/coins?ids=bitcoin&currency=USD',
+      'https://slashes.test/v1/coins?ids=bitcoin&currency=USD',
     ]);
   });
 });
@@ -527,15 +567,89 @@ describe('a currency without a rate', () => {
     expect(state(element)).toBe('data');
     expect(part(element, '.cfh-price').textContent).toBe(BITCOIN.price);
     expect(noteText(element)).toBe('Shown in US dollars: no INR rate right now.');
-    expect(rateText(element)).toBe('');
+    expect(footText(element)).toBe('');
 
     inr = 'coins-inr';
     await wait(10 * MINUTE);
     await settle();
     expect(queries(mock).filter((query) => query.endsWith('INR'))).toHaveLength(2);
-    expect(part(element, '.cfh-price').textContent).toBe(coinOf('coins-inr', 'bitcoin').display.price);
+    expect(part(element, '.cfh-price').textContent).toBe('₹82,99,733.90');
     expect(shown(part(element, '.cfh-note'))).toBe(false);
-    expect(rateText(element)).toBe('· USD rate derived from ECB data');
+    // The fixture's prices are over 10 minutes old by now.
+    expect(footText(element)).toBe('Updated 10 min ago · USD rate derived from ECB data');
+  });
+});
+
+describe('the age note', () => {
+  /** When the fixtures' prices were read (their updatedAt). */
+  const READ = Date.parse('2026-10-06T10:55:01.352Z');
+  /** A price card, mounted when the fixtures' prices are `ago` old. */
+  function agedBy(ago: number, attributes: Record<string, string> = {}) {
+    vi.setSystemTime(READ + ago);
+    return price({ coin: 'bitcoin', ...attributes, api: freshBase() });
+  }
+
+  it.each([
+    ['2:59', 2 * MINUTE + 59 * SECOND, ''],
+    ['3:00', 3 * MINUTE, ''],
+    ['3:01', 3 * MINUTE + SECOND, 'Updated 3 min ago'],
+    ['59:59', 59 * MINUTE + 59 * SECOND, 'Updated 59 min ago'],
+    ['1:00:00', HOUR, 'Updated 1 h ago'],
+    ['26:30:00', 26 * HOUR + 30 * MINUTE, 'Updated 26 h ago'],
+  ])('prices %s old: %j', async (_, ago, text) => {
+    always('coins-usd');
+    const element = await agedBy(ago);
+    expect(state(element)).toBe('data');
+    expect(footText(element)).toBe(text);
+  });
+
+  it('comes before the rate label, joined by a dot', async () => {
+    always('coins-inr');
+    const element = await agedBy(4 * MINUTE + 10 * SECOND, { currency: 'INR' });
+    expect(footText(element)).toBe('Updated 4 min ago · USD rate derived from ECB data');
+  });
+
+  it('goes by the newest price the widget shows', async () => {
+    stubFetch((url) => {
+      const body = fixture('coins-usd') as { coins: { slug: string; updatedAt: string }[] };
+      const ethereum = body.coins.find((coin) => coin.slug === 'ethereum');
+      if (ethereum) ethereum.updatedAt = new Date(READ + 2 * MINUTE).toISOString();
+      const ids = url.searchParams.get('ids')?.split(',') ?? [];
+      return new Response(JSON.stringify({ ...body, coins: body.coins.filter((coin) => ids.includes(coin.slug)) }));
+    });
+    vi.setSystemTime(READ + 4 * MINUTE);
+    const api = freshBase();
+    const both = await mount('coinfinhub-list', { coins: 'bitcoin,ethereum', api });
+    const bitcoin = await mount('coinfinhub-list', { coins: 'bitcoin', api });
+    expect(footText(both)).toBe('');
+    expect(footText(bitcoin)).toBe('Updated 4 min ago');
+  });
+
+  it('is worked out again on every beat of the refresh clock, also off screen', async () => {
+    const mock = always('coins-usd');
+    const element = await agedBy(2 * MINUTE + 30 * SECOND);
+    expect(footText(element)).toBe('');
+    scroll(element, false);
+    await wait(MINUTE);
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(footText(element)).toBe('Updated 3 min ago');
+  });
+
+  it('says how old the kept prices are while refreshes fail', async () => {
+    inTurn('coins-usd', 'error-prices-unavailable');
+    const element = await agedBy(30 * SECOND);
+    // The refresh at 60 s fails, and so do the retries at 120 and 180 s (retryAfter 60): the price is then 3:30 old.
+    await wait(3 * MINUTE);
+    await settle();
+    expect(state(element)).toBe('data');
+    expect(footText(element)).toBe('Updated 3 min ago');
+  });
+
+  it('is empty while loading and in the error state', async () => {
+    stubFetch(() => new Promise<Response>(() => undefined));
+    expect(footText(await agedBy(HOUR))).toBe('');
+    always('error-prices-unavailable');
+    expect(footText(await agedBy(HOUR))).toBe('');
   });
 });
 

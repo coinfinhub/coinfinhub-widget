@@ -14,10 +14,11 @@ export function fixture(name: string): Record<string, unknown> {
 interface FixtureCoin {
   slug: string;
   price: number;
-  display: { price: string; change: string | null };
+  change24h: number | null;
+  sparkline7d?: number[];
 }
 
-/** One coin of a fixture, by slug: what the tests expect to see. */
+/** One coin of a fixture, by slug, as the endpoint sends it. */
 export function coinOf(name: string, slug: string): FixtureCoin {
   const coin = (fixture(name).coins as FixtureCoin[]).find((c) => c.slug === slug);
   if (!coin) throw new Error(`${name} has no ${slug}`);
@@ -141,5 +142,6 @@ export const state = (element: Element) => part(element, '.cfh-card').dataset.st
 export const statusText = (element: Element) => part(element, '.cfh-status').textContent;
 export const noteText = (element: Element) => part(element, '.cfh-note').textContent;
 export const link = (element: Element) => part(element, '.cfh-link') as HTMLAnchorElement;
-export const rateText = (element: Element) => part(element, '.cfh-foot').lastElementChild?.textContent;
+/** The footer's notes, left of the link: how old the prices are, and the rate's label. */
+export const footText = (element: Element) => part(element, '.cfh-foot > span').textContent;
 export const shown = (node: Element): boolean => !(node as HTMLElement).hidden;
