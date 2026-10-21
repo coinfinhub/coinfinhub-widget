@@ -1,4 +1,4 @@
-// Builds dist/coinfinhub-price.js: one minified ES module, the same bytes on every machine,
+// Builds dist/coinfinhub-widget.js: one minified ES module, the same bytes on every machine,
 // so CI can check that the committed file matches a fresh build and SRI hashes stay valid.
 import { readFile } from 'node:fs/promises';
 import { build, transform } from 'esbuild';
@@ -22,16 +22,16 @@ const minifyCss = {
 };
 
 await build({
-  entryPoints: ['src/coinfinhub-price.ts'],
-  outfile: 'dist/coinfinhub-price.js',
+  entryPoints: ['src/coinfinhub-widget.ts'],
+  outfile: 'dist/coinfinhub-widget.js',
   bundle: true,
   format: 'esm',
   minify: true,
   target,
   charset: 'utf8',
   legalComments: 'none',
-  banner: { js: `/*! coinfinhub-price ${pkg.version} | MIT | (c) 2026 Rudranx Digital Labs | github.com/coinfinhub/coinfinhub-widget */` },
+  banner: { js: `/*! coinfinhub-widget ${pkg.version} | MIT | (c) 2026 Rudranx Digital Labs | github.com/coinfinhub/coinfinhub-widget */` },
   plugins: [minifyCss],
   logLevel: 'warning',
 });
-console.log(`built dist/coinfinhub-price.js (${pkg.version})`);
+console.log(`built dist/coinfinhub-widget.js (${pkg.version})`);

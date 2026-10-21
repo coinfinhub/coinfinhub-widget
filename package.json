@@ -2,7 +2,7 @@
   "name": "coinfinhub-widget",
   "version": "1.0.0",
   "private": true,
-  "description": "A small, dependency-free web component that shows a coin's price from CoinFinHub on any website.",
+  "description": "Small, dependency-free web components that show coin prices from CoinFinHub on any website: a price card, a list, a ticker and a converter.",
   "license": "MIT",
   "author": "Rudranx Digital Labs",
   "homepage": "https://www.coinfinhub.com",
@@ -12,7 +12,7 @@
   },
   "type": "module",
   "exports": {
-    ".": "./dist/coinfinhub-price.js"
+    ".": "./dist/coinfinhub-widget.js"
   },
   "files": [
     "dist"

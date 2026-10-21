@@ -1,4 +1,4 @@
-// Prints the embed snippet's SRI hash for dist/coinfinhub-price.js. With --check, fails unless the
+// Prints the embed snippet's SRI hash for dist/coinfinhub-widget.js. With --check, fails unless the
 // snippets in README.md and docs/index.html carry this hash and the package version, so the snippet
 // on a release tag always matches the file jsDelivr serves from that tag.
 import { createHash } from 'node:crypto';
@@ -6,8 +6,8 @@ import { readFile } from 'node:fs/promises';
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url));
 const pkg = JSON.parse(await read('package.json'));
-const integrity = `sha384-${createHash('sha384').update(await read('dist/coinfinhub-price.js')).digest('base64')}`;
-const src = `https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@${pkg.version}/dist/coinfinhub-price.js`;
+const integrity = `sha384-${createHash('sha384').update(await read('dist/coinfinhub-widget.js')).digest('base64')}`;
+const src = `https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@${pkg.version}/dist/coinfinhub-widget.js`;
 
 if (!process.argv.includes('--check')) {
   console.log(`src="${src}"\nintegrity="${integrity}"`);

@@ -1,12 +1,14 @@
-// Nothing unused: every cfh-* class in src/styles.ts is used by the render code and every class the
-// render code uses is styled; every --cfh-* token defined is used, and every token used is defined.
-import { readFile } from 'node:fs/promises';
+// Nothing unused: every cfh-* class in src/styles.ts is used by the render code (every other file in src/)
+// and every class the render code uses is styled; every --cfh-* token defined is used, and every token
+// used is defined.
+import { readdir, readFile } from 'node:fs/promises';
 import { css, light } from '../src/styles.ts';
 
-const render = (await readFile(new URL('../src/coinfinhub-price.ts', import.meta.url), 'utf8')).replace(
-  /\/\*[\s\S]*?\*\/|\/\/.*$/gm,
-  '',
-);
+const folder = new URL('../src/', import.meta.url);
+const files = (await readdir(folder)).filter((name) => name.endsWith('.ts') && name !== 'styles.ts');
+const render = (await Promise.all(files.map((name) => readFile(new URL(name, folder), 'utf8'))))
+  .join('\n')
+  .replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
 
 const words = (text, pattern) => new Set(Array.from(text.matchAll(pattern), (m) => m[1]));
 const styled = words(css, /\.(cfh-[a-z0-9-]+)/g);
@@ -25,4 +27,4 @@ if (problems.length) {
   console.error(problems.join('\n'));
   process.exit(1);
 }
-console.log(`unused CSS: none (${styled.size} classes, ${defined.size} tokens)`);
+console.log(`unused CSS: none (${styled.size} classes in ${files.length} files, ${defined.size} tokens)`);
