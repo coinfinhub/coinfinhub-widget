@@ -1,1 +1,1 @@
-{ "error": { "status": 400, "code": "invalid_query", "message": "Give each parameter once." } }
+{"error":{"status":400,"code":"invalid_query","message":"Give each parameter once."}}

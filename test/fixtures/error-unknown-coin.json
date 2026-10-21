@@ -1,1 +1,1 @@
-{ "error": { "status": 404, "code": "unknown_coin", "message": "CoinFinHub has no page for this coin." } }
+{"error":{"status":404,"code":"unknown_coin","message":"CoinFinHub has no page for this coin."}}

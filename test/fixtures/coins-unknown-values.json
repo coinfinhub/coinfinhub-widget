@@ -1,0 +1,33 @@
+{
+  "currency": "USD",
+  "coins": [
+    {
+      "slug": "bitcoin",
+      "name": "Bitcoin",
+      "symbol": "BTC",
+      "logo": "added later",
+      "rank": "first",
+      "price": 86091.97,
+      "change24h": -1.34,
+      "trading": "paused",
+      "updatedAt": "not a date",
+      "url": "https://www.coinfinhub.com/price/bitcoin",
+      "marketCap": 1760000000000,
+      "display": {
+        "price": "$86,091.97",
+        "change": "−1.34%",
+        "direction": "sideways",
+        "badge": "Paused",
+        "note": "New in v1.1",
+        "tone": "warm"
+      }
+    }
+  ],
+  "missing": [],
+  "rate": null,
+  "notice": "New in v1.1",
+  "display": {
+    "rate": null,
+    "banner": "New in v1.1"
+  }
+}

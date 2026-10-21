@@ -1,1 +1,1 @@
-{ "error": { "status": 400, "code": "invalid_coin", "message": "That isn't a coin name. Use the end of the coin's page address, such as bitcoin." } }
+{"error":{"status":400,"code":"invalid_coin","message":"That isn't a coin name. Use the end of the coin's page address, such as bitcoin."}}

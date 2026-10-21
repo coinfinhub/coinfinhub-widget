@@ -1,0 +1,35 @@
+{
+  "currency": "USD",
+  "coins": [
+    {
+      "slug": "hostile",
+      "name": "<img src=x onerror=alert(1)>",
+      "symbol": "\"><svg onload=alert(1)>",
+      "logo": "javascript:alert(1)",
+      "rank": null,
+      "price": 1,
+      "change24h": 1,
+      "trading": "listed",
+      "updatedAt": "2026-10-06T10:55:01.352Z",
+      "url": "javascript:alert(1)",
+      "sparkline7d": [
+        "<script>",
+        1,
+        null,
+        2,
+        "x"
+      ],
+      "display": {
+        "price": "<b>$1.00</b>",
+        "change": "<i>+1.00%</i>",
+        "direction": "__proto__",
+        "badge": "<em>badge</em>"
+      }
+    }
+  ],
+  "missing": [],
+  "rate": null,
+  "display": {
+    "rate": "<style>*{display:none}</style>"
+  }
+}

@@ -1,1 +1,1 @@
-{ "error": { "status": 503, "code": "prices_unavailable", "message": "Prices are unavailable right now.", "retryAfter": 60 } }
+{"error":{"status":503,"code":"prices_unavailable","message":"Prices are unavailable right now.","retryAfter":60}}

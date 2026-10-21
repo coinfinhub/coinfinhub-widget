@@ -1,6 +1,20 @@
 {
-  "coin": { "slug": "bitcoin", "name": "Bitcoin", "symbol": "BTC" },
   "currency": "USD",
-  "price": 86091.97,
-  "display": { "change": "−1.34%", "direction": "down" }
+  "coins": [
+    {
+      "slug": "bitcoin",
+      "name": "Bitcoin",
+      "symbol": "BTC",
+      "price": 86091.97,
+      "display": {
+        "change": "−0.01%",
+        "direction": "down"
+      }
+    }
+  ],
+  "missing": [],
+  "rate": null,
+  "display": {
+    "rate": null
+  }
 }

@@ -1,0 +1,100 @@
+{
+  "currency": "USD",
+  "coins": [
+    {
+      "slug": "bitcoin",
+      "name": "Bitcoin",
+      "symbol": "BTC",
+      "logo": "https://www.coinfinhub.com/coin-logos/small/bitcoin.png?v=1",
+      "rank": 1,
+      "price": 86091.97,
+      "change24h": -0.009326364692217,
+      "trading": "listed",
+      "updatedAt": "2026-10-06T10:55:01.352Z",
+      "url": "https://www.coinfinhub.com/price/bitcoin",
+      "display": {
+        "price": "$86,091.97",
+        "change": "−0.01%",
+        "direction": "down",
+        "badge": null
+      }
+    },
+    {
+      "slug": "ethereum",
+      "name": "Ethereum",
+      "symbol": "ETH",
+      "logo": null,
+      "rank": 2,
+      "price": 2714.91,
+      "change24h": -0.013626587313291652,
+      "trading": "listed",
+      "updatedAt": "2026-10-06T10:55:01.352Z",
+      "url": "https://www.coinfinhub.com/price/ethereum",
+      "display": {
+        "price": "$2,714.91",
+        "change": "−0.01%",
+        "direction": "down",
+        "badge": null
+      }
+    },
+    {
+      "slug": "bnb",
+      "name": "BNB",
+      "symbol": "BNB",
+      "logo": null,
+      "rank": 3,
+      "price": 783.91,
+      "change24h": -0.521560366488162,
+      "trading": "listed",
+      "updatedAt": "2026-10-06T10:55:01.352Z",
+      "url": "https://www.coinfinhub.com/price/bnb",
+      "display": {
+        "price": "$783.91",
+        "change": "−0.52%",
+        "direction": "down",
+        "badge": null
+      }
+    },
+    {
+      "slug": "xrp",
+      "name": "XRP",
+      "symbol": "XRP",
+      "logo": null,
+      "rank": 4,
+      "price": 1.5089,
+      "change24h": -0.5273913903355533,
+      "trading": "listed",
+      "updatedAt": "2026-10-06T10:55:01.352Z",
+      "url": "https://www.coinfinhub.com/price/xrp",
+      "display": {
+        "price": "$1.51",
+        "change": "−0.53%",
+        "direction": "down",
+        "badge": null
+      }
+    },
+    {
+      "slug": "usdc",
+      "name": "USDC",
+      "symbol": "USDC",
+      "logo": null,
+      "rank": 5,
+      "price": 1.0002,
+      "change24h": 0.0099990000999889,
+      "trading": "listed",
+      "updatedAt": "2026-10-06T10:55:01.352Z",
+      "url": "https://www.coinfinhub.com/price/usdc",
+      "display": {
+        "price": "$1.00",
+        "change": "+0.01%",
+        "direction": "up",
+        "badge": null
+      }
+    }
+  ],
+  "missing": [],
+  "rate": null,
+  "display": {
+    "rate": null
+  }
+}
