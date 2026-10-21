@@ -103,7 +103,7 @@ export abstract class Widget extends HTMLElement {
     add(this.#link, 'span', 'cfh-by').textContent = 'Powered by ';
     // CoinFinHub's mark, drawn here (no image request): the navy tile, the white C and F, the gold bar.
     const mark = svg(this.#link, 'svg', { class: 'cfh-mark', viewBox: '0 0 512 512', 'aria-hidden': 'true' });
-    add(this.#link, 'span', 'cfh-name').textContent = 'CoinFinHub';
+    add(this.#link, 'span', 'cfh-brand').textContent = 'CoinFinHub';
     svg(mark, 'rect', { width: '512', height: '512', rx: '104', fill: '#161f5a' });
     const strokes = svg(mark, 'g', {
       transform: 'translate(231 258) scale(1.08) translate(-231 -258)',

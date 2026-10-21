@@ -385,12 +385,12 @@ const rules = /* css */ `
 .cfh-by {
   white-space: pre;
 }
-.cfh-name {
+.cfh-brand {
   font-weight: 600;
   color: var(--cfh-ink);
 }
-.cfh-link:hover .cfh-name,
-.cfh-link:focus-visible .cfh-name {
+.cfh-link:hover .cfh-brand,
+.cfh-link:focus-visible .cfh-brand {
   text-decoration: underline;
   text-underline-offset: 0.15em;
 }
