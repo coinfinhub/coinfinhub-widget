@@ -136,76 +136,13 @@ No `style-src` change and no `'unsafe-inline'` are needed: the styles come as a 
 
 ## Data terms
 
-- The prices are for display, not for trading. Their use falls under "The CoinFinHub widget" section of the [CoinFinHub Terms](https://www.coinfinhub.com/terms): any website, commercial ones included, may show them with the "Powered by CoinFinHub" link visible beside them. Don't hide or remove the link, collect the data in bulk, resell it, or use it for trading.
+- The prices are for display, not for trading. Their use falls under "The CoinFinHub widgets" section of the [CoinFinHub Terms](https://www.coinfinhub.com/terms): any website, commercial ones included, may show them with the "Powered by CoinFinHub" link visible beside them. Don't hide or remove the link, collect the data in bulk, resell it, or use it for trading.
 - There is no uptime promise. CoinFinHub may change or withdraw the widgets, or block a site.
 - The price is the one CoinFinHub shows: the last trade on the coin's busiest up-to-date dollar market among the exchanges CoinFinHub reads. The choice of market and the 24h change are CoinFinHub's own. The data comes from third parties, and parts of it may be removed at a rights holder's request.
 
-## The JSON: the widgets' own endpoint
+## Where the prices come from
 
-This is the endpoint the widgets read, documented for transparency. **It is not a public API:** it has no keys and no uptime promise, it's rate-limited per address, and the Terms allow calling it only to show prices as the widgets do, with the link visible.
-
-**Request:** `GET https://www.coinfinhub.com/api/widget/v1/coins?ids=bitcoin,ethereum&currency=USD&spark=7d`, or `?top=10` instead of `ids`.
-
-- `ids`: 1 to 20 slugs, comma-separated; repeats are dropped and the order is kept. `top`: 1 to 20, the coins ranked 1 to N. Give exactly one of the two.
-- `spark`: optional, only `7d`, for the 7-day line. `currency`: optional (`USD` by default), case-insensitive.
-- Send simple GETs with no custom headers: a CORS preflight (`OPTIONS`) fails.
-
-**200** (numbers illustrative):
-
-```json
-{
-  "currency": "USD",
-  "coins": [
-    {
-      "slug": "bitcoin", "name": "Bitcoin", "symbol": "BTC",
-      "logo": "https://www.coinfinhub.com/coin-logos/small/bitcoin.png?v=1",
-      "rank": 1,
-      "price": 88888, "change24h": 2.8, "trading": "listed",
-      "updatedAt": "2026-10-18T09:41:03.000Z",
-      "url": "https://www.coinfinhub.com/price/bitcoin",
-      "sparkline7d": [86120.5, 86410.2],
-      "display": { "price": "$88,888.00", "change": "+2.80%", "direction": "up", "badge": null }
-    }
-  ],
-  "missing": [],
-  "rate": null,
-  "display": { "rate": null }
-}
-```
-
-| Field | Meaning |
-|---|---|
-| `coins` | In the order asked (`ids`) or by rank (`top`). |
-| `logo` | The coin's logo on CoinFinHub; `null` when there is none. |
-| `rank` | Its rank; `null` outside the ranked list. |
-| `price` | In `currency`: the price CoinFinHub shows. |
-| `change24h` | Percent over 24 hours; `null` when unknown, and for a coin with no trades. |
-| `trading` | `listed`, `low` (little trading) or `stopped` (no trades). |
-| `updatedAt` | When CoinFinHub last read this coin's price. It moves even when the price doesn't. |
-| `url` | The coin's page on CoinFinHub. |
-| `sparkline7d` | Only with `spark=7d`: the last 7 days in `currency`, oldest first. |
-| `display` | Ready-made text: the price and change (with a true minus sign, and lakh grouping for INR), the change's `direction` (`up`, `down` or `flat`; `null` with no change), and a `badge` ("Little trading", "No trades since 1 Oct 2026") or `null`. |
-| `missing` | Slugs asked for that have no page on CoinFinHub. |
-| `rate` | `null` for USD. Otherwise the rate's source and date: the dollar rate is derived from the ECB's euro rates, and `display.rate` says so. |
-
-**Errors** all have the same shape. 429 and 503 also say in the body how many seconds to wait:
-
-```json
-{ "error": { "status": 503, "code": "prices_unavailable", "message": "Prices are unavailable right now.", "retryAfter": 60 } }
-```
-
-| Status | `code` | When |
-|---|---|---|
-| 400 | `invalid_coin` | A slug isn't well-formed. |
-| 400 | `invalid_currency` | Not one of the eight currencies. |
-| 400 | `invalid_query` | Both or neither of `ids` and `top`, more than 20 coins, `top` outside 1 to 20, a parameter given twice, or a `spark` other than `7d`. |
-| 404 | `unknown_coin` | None of the coins asked for has a page on CoinFinHub. (Some unknown: they are listed in `missing`.) |
-| 429 | `rate_limited` | Too many requests from one address. |
-| 503 | `prices_unavailable` | Prices can't be read right now. |
-| 503 | `rate_unavailable` | No rate for that currency right now. The widgets show USD instead. |
-| 503 | `widget_off` | The endpoint is switched off. |
-
-**Versioning.** The major version is in the path. Within v1, fields may be added and the lists of values (`trading`, `direction`, `badge`, `code`) may grow; nothing is removed, renamed or retyped. The widgets fall back safely on anything they don't know. A breaking change would become `/v2/`, and v1 is never simply switched off, because pinned widgets can't be updated.
+The widgets read CoinFinHub's own widget endpoint on www.coinfinhub.com. It belongs to the widgets: it is **not a public API**, it isn't documented, it is rate-limited, and it may change at any time. The Terms allow calling it only through the widgets. For a data API, [contact CoinFinHub](https://www.coinfinhub.com/contact).
 
 ## Hosting the script yourself
 
