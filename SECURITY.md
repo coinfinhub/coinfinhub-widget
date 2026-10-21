@@ -1,6 +1,6 @@
 # Security
 
-This widget runs on other people's pages, so we take reports seriously.
+These widgets run on other people's pages, so we take reports seriously.
 
 ## Reporting a problem
 
@@ -8,7 +8,7 @@ Please report security problems privately through the contact page on CoinFinHub
 
 Tell us what you found, how to reproduce it, and which version (tag) it affects. We'll confirm we've received it, keep you informed, and credit you in the release notes if you'd like.
 
-In scope: this repository's code, and the built file that jsDelivr serves from its tags (for example, a way to run script, inject HTML, or send the link anywhere but `https://www.coinfinhub.com/price/…`). The CoinFinHub website and its endpoint have their own report channel: the same contact page.
+In scope: this repository's code, and the built file that jsDelivr serves from its tags (for example, a way to run script, inject HTML, send the link anywhere but CoinFinHub's coin pages or home page, or load an image from anywhere but `https://www.coinfinhub.com/coin-logos/…`). The CoinFinHub website and its endpoint have their own report channel: the same contact page.
 
 ## Supported versions
 
@@ -25,4 +25,4 @@ A tag never changes once published, and snippets pin a version with an `integrit
 - Tags `v*` can't be moved or deleted, and the default branch can't be force-pushed.
 - `dist/` is checked against a fresh build by CI on every push, so a release carries exactly the code in its tag.
 - GitHub Actions are pinned by commit, with the least permissions they need.
-- The widget has no runtime dependencies.
+- The widgets have no runtime dependencies.

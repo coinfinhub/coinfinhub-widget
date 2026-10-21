@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping. This is a small widget, and keeping it small and safe on other people's pages is the whole point, so please read the scope before writing code.
+Thanks for helping. These are small widgets, and keeping them small and safe on other people's pages is the whole point, so please read the scope before writing code.
 
 ## Setup
 
@@ -12,7 +12,7 @@ npm run check        # type check, lint, knip, unused CSS, unit tests, build, si
 npm run serve        # the demo on http://localhost:4173/ and a mock API on http://127.0.0.1:4174/
 ```
 
-Open `http://localhost:4173/?api=http://127.0.0.1:4174` to point every widget on the demo at the mock API.
+Open `http://localhost:4173/?api=http://127.0.0.1:4174` to point every widget on the demo at the mock API. `CFH_PAGES_PORT` and `CFH_API_PORT` move the two servers to other ports.
 
 Browser tests (Chromium, Firefox and WebKit with a mocked API on another origin, plus axe):
 
@@ -23,22 +23,35 @@ npm run test:browser
 
 CI runs all of it on every push and pull request.
 
+## Where things are
+
+| Path | What it is |
+|---|---|
+| `src/coinfinhub-widget.ts` | The entry: defines the four elements, each once. |
+| `src/widget.ts` | What every widget shares: attributes, states, refresh, backoff, the US-dollar fallback, the footer. |
+| `src/price.ts`, `src/list.ts`, `src/ticker.ts`, `src/converter.ts` | The four elements. |
+| `src/api.ts` | The one request layer: merged calls, the once-a-minute floor, checking every answer. |
+| `src/dom.ts`, `src/spark.ts`, `src/convert.ts` | One coin's parts, the 7-day line's maths, the converter's numbers. |
+| `src/styles.ts` | The one stylesheet, light and dark tokens. |
+| `test/fixtures/` | The endpoint's examples, copied from the CoinFinHub site's tests, plus a few bodies only the widgets need (hostile text, unknown values, missing fields). |
+| `docs/` | The demo page; `docs/mock.js` answers like the endpoint, for the demo and the browser tests. |
+
 ## The checks
 
 | Command | What it checks |
 |---|---|
-| `npm run typecheck` | Strict TypeScript, for the widget and for the tests. |
+| `npm run typecheck` | Strict TypeScript, for the widgets and for the tests. |
 | `npm run lint` | ESLint with typescript-eslint's strict, type-checked rules. |
 | `npm run knip` | No unused files, exports or dependencies. |
 | `npm run css:check` | Every `cfh-*` class in `src/styles.ts` is rendered, every rendered class is styled, and every `--cfh-*` token is both defined and used. |
-| `npm test` | Unit tests (Vitest + happy-dom), fed by the contract's fixtures in `test/fixtures/`. |
-| `npm run build` | Builds `dist/coinfinhub-price.js` with esbuild. |
-| `npm run size` | The size budget: at most 10,240 bytes gzipped (level 9), with a 6 KB target. |
+| `npm test` | Unit tests (Vitest + happy-dom), fed by the fixtures in `test/fixtures/`. |
+| `npm run build` | Builds `dist/coinfinhub-widget.js` with esbuild. |
+| `npm run size` | The size budget: at most 12,288 bytes gzipped (level 9) for all four widgets. |
 | `npm run sri -- --check` | The snippets in `README.md` and `docs/index.html` carry the hash and version of `dist`. |
 
 ## `dist/` is committed
 
-jsDelivr serves `dist/coinfinhub-price.js` straight from the repo's git tags, so the built file lives in git. After any change under `src/`:
+jsDelivr serves `dist/coinfinhub-widget.js` straight from the repo's git tags, so the built file lives in git. After any change under `src/`:
 
 1. `npm run build`
 2. `npm run sri` and paste the new hash into the snippets in `README.md` and `docs/index.html`
@@ -49,21 +62,22 @@ CI rebuilds `dist` and fails if it differs from the committed file, so a tag can
 ## Rules for the code
 
 - **No runtime dependencies.** Everything ships in one file.
-- **No tracking.** No cookies, storage, fingerprinting or analytics, and no requests other than the price.
-- **Text only.** Everything from the server is written with `textContent`, never as HTML. The link only ever points at `https://www.coinfinhub.com/price/…`.
+- **No tracking.** No cookies, storage, fingerprinting or analytics, and no requests other than the prices and the logos.
+- **Text only.** Everything from the server is written with `textContent`, never as HTML. Links only ever point at `https://www.coinfinhub.com/price/…` or the home page, and logos only come from `https://www.coinfinhub.com/coin-logos/…`.
+- **One request layer.** Every widget asks through `src/api.ts`, so calls stay merged and the once-a-minute floor holds for pinned embeds that can't be patched.
 - **Our own names.** Classes are `cfh-*`, custom properties `--cfh-*`.
-- **No motion,** and sizes in `em` (the host sets `font-size: max(1em, 15px)`), never `rem`.
-- **Every word in English, and every number formatted by the server.** The widget shows the server's text; it doesn't format prices itself.
+- **Motion only in the ticker,** paused on hover and focus and off under reduced motion; sizes in `em` (the host sets `font-size: max(1em, 15px)`), never `rem`.
+- **Every word in English, and the server's text where it sends one.** Prices and changes come formatted from the server; only the converter formats its own fields, with `Intl.NumberFormat`.
 - **Fall back safely** on any value or field it doesn't know: the endpoint may add fields and values within v1.
 - **Nothing unused:** knip and the CSS check enforce it.
 - **Tests for every behaviour,** and a fixture for every new case of the contract.
 
 ## Scope
 
-In v1 the widget is a price display, not a feed. These are out of scope:
+In v1 the widgets show prices; they are not a feed. These are out of scope:
 
 - npm packages, iframe versions, and React or Vue wrappers;
-- lists, batches, history, charts, volumes, market cap, exchanges, pairs or logos;
+- history beyond the 7-day line, volumes, market cap, exchanges or pairs;
 - API keys, accounts, or an uptime promise;
 - custom colours, font downloads, and languages other than English;
 - anything that changes the "Powered by CoinFinHub" link's text, target or `rel`.
