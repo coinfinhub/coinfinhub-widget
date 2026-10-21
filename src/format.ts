@@ -33,16 +33,21 @@ function digits(size: number, currency: string, coin: boolean): Intl.NumberForma
  * - `price`: money with the currency's sign as Intl writes it, "$86,091.97", "₹82,99,733.90", "¥12,941,001";
  * - `money`: the same digits without the sign, for the converter's field;
  *   both as CoinFinHub's pages write prices: 2 decimals from 1 unit up (none in yen), 4 decimals from 0.01 up to 1
- *   ("$0.4610"), and 4 significant digits below 0.01 ("$0.000004362");
+ *   ("$0.4610"), and 4 significant digits below 0.01 ("$0.000004362"), by the size as shown: one that its digits
+ *   round up into the next tier takes that tier's, so 0.99995 is "$1.00" (not "$1.0000") and 0.0099996 "$0.0100";
  * - `coin`: an amount of a coin, up to 6 decimals, or 6 significant digits below 1.
  * Throws for a currency code Intl can't read.
  */
 export function formatAmount(amount: number, currency: string, kind: 'price' | 'money' | 'coin'): string {
   if (!Number.isFinite(amount)) return '';
   const coin = kind === 'coin';
+  const size = Math.abs(amount);
+  // Money's size rounded at its own tier's digits. Rounding only ever reaches the next tier's lowest value, which
+  // that tier shows as it is, so one step is enough.
+  const shownSize = coin ? size : Number(new Intl.NumberFormat('en-US', { useGrouping: false, ...digits(size, currency, false) }).format(size));
   const format = new Intl.NumberFormat(currency === 'INR' ? 'en-IN' : 'en-US', {
     ...(coin ? {} : { style: 'currency', currency }),
-    ...digits(Math.abs(amount), currency, coin),
+    ...digits(shownSize, currency, coin),
   });
   const parts = format.formatToParts(amount);
   // Without the sign: the number alone, also when the sign comes with a space ("CHF 12.30").

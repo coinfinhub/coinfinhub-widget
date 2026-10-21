@@ -15,7 +15,7 @@ Four small widgets that show coin prices from [CoinFinHub](https://www.coinfinhu
 Add the script once per page, however many widgets it has:
 
 ```html
-<script type="module" src="https://cdn.coinfinhub.com/widgets/1.0.0/coinfinhub-widget.js" integrity="sha384-Gp+KxmPND2FyaEfAHL2XfRctQ8WwGSHvsGQ7SfoCjMXw0uYQe5iLQuHKab2au5T9" crossorigin="anonymous"></script>
+<script type="module" src="https://cdn.coinfinhub.com/widgets/1.0.0/coinfinhub-widget.js" integrity="sha384-duGQV9L9RY00ppU6fLyKtCC44RGulk3cacYGqE46gfJNHhwn2dGUt6EzF0EHu7qt" crossorigin="anonymous"></script>
 ```
 
 Then put a widget where it should appear. Each one carries a plain link inside it, which shows instead when JavaScript is off or the browser is older than the ones below.
@@ -54,7 +54,7 @@ Then put a widget where it should appear. Each one carries a plain link inside i
 - **A mirror on jsDelivr**, the same file built from this repo's release tag, with the same hash:
 
   ```html
-  <script type="module" src="https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@1.0.0/dist/coinfinhub-widget.js" integrity="sha384-Gp+KxmPND2FyaEfAHL2XfRctQ8WwGSHvsGQ7SfoCjMXw0uYQe5iLQuHKab2au5T9" crossorigin="anonymous"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@1.0.0/dist/coinfinhub-widget.js" integrity="sha384-duGQV9L9RY00ppU6fLyKtCC44RGulk3cacYGqE46gfJNHhwn2dGUt6EzF0EHu7qt" crossorigin="anonymous"></script>
   ```
 
 - **The latest 1.x**, which picks up fixes and additions within version 1 without editing your page. It can't carry an `integrity` hash, since the file behind it changes:
@@ -86,7 +86,7 @@ Change `coin`, `coins`, `top`, `chart`, `currency` or `api` and the widget fetch
 ## What they show
 
 - **Every coin:** its logo (or the first letter of its symbol in a circle), name or symbol, price, and the 24-hour change as "▼ −1.34% 24h": arrow, sign and period always together, so colour is never the only signal. A change that rounds to 0.00% is flat: "• 0.00% 24h", in grey.
-- **Prices** are written in the visitor's browser, as on CoinFinHub's own pages: two decimals from 1 up (none in yen), four decimals from 0.01 up to 1 ($0.4610), and four significant digits below 0.01 ($0.00000436), with the currency's sign and a true minus.
+- **Prices** are written in the visitor's browser, as on CoinFinHub's own pages: two decimals from 1 up (none in yen), four decimals from 0.01 up to 1 ($0.4610), and four significant digits below 0.01 ($0.00000436), each chosen by the price once rounded (0.99995 is $1.00), with the currency's sign and a true minus.
 - **A badge** for a coin with little trading ("Little trading": its price may be far from what you'd pay) or one that stopped trading ("No trades since 1 Oct 2026": the last price, with no change), so a page never shows a dead coin's old price as live.
 - **The 7-day line** on the price card with `chart="7d"`: coloured by which way the week went, labelled "7d", and named for screen readers ("Price over 7 days, up").
 - **The converter** works out either field from the other as the visitor types, from the price CoinFinHub sends. Commas, spaces and an empty field are fine. It is labelled "For display, not a quote".

@@ -51,32 +51,41 @@ describe('writing prices', () => {
     expect(formatAmount(amount, currency, 'price')).toBe(text);
   });
 
-  // The site's rule (cfh-web-app shared/utils/format.ts): 2 decimals from 1 unit up (none in yen), 4 decimals
-  // from 0.01 up to 1, 4 significant digits below 0.01.
+  // The site's rule (cfh-web-app shared/utils/format.ts), with the site's test values: 2 decimals from 1 unit up
+  // (none in yen), 4 decimals from 0.01 up to 1, 4 significant digits below 0.01, by the size as shown: one that
+  // rounds up into the next tier takes that tier's digits.
   it.each([
     [1, 'USD', '$1.00'],
-    // Under 1, so 4 decimals, even where they round it up to 1.
-    [0.99995, 'USD', '$1.0000'],
+    [0.99995, 'USD', '$1.00'],
     [0.99994, 'USD', '$0.9999'],
     [0.5, 'USD', '$0.5000'],
     [0.01, 'USD', '$0.0100'],
+    [0.0099996, 'USD', '$0.0100'],
+    [0.0099994, 'USD', '$0.009999'],
     [0.00999, 'USD', '$0.00999'],
     [0.0000043, 'USD', '$0.0000043'],
     [-0.5, 'USD', '−$0.5000'],
+    [-0.99995, 'USD', '−$1.00'],
+    [-0.0099996, 'USD', '−$0.0100'],
     [-0.00999, 'USD', '−$0.00999'],
     [1, 'JPY', '¥1'],
-    [0.99995, 'JPY', '¥1.0000'],
+    [0.99995, 'JPY', '¥1'],
+    [0.99994, 'JPY', '¥0.9999'],
     [0.5, 'JPY', '¥0.5000'],
     [0.01, 'JPY', '¥0.0100'],
+    [0.0099996, 'JPY', '¥0.0100'],
     [0.00999, 'JPY', '¥0.00999'],
     [0.0000043, 'JPY', '¥0.0000043'],
     [1, 'INR', '₹1.00'],
+    [0.99995, 'INR', '₹1.00'],
     [123_456.789, 'INR', '₹1,23,456.79'],
     [0.5, 'INR', '₹0.5000'],
     [0.01, 'INR', '₹0.0100'],
+    [0.0099996, 'INR', '₹0.0100'],
     [0.00999, 'INR', '₹0.00999'],
     [0.0000043, 'INR', '₹0.0000043'],
     [0.5, 'CHF', 'CHF 0.5000'],
+    [0.99995, 'CHF', 'CHF 1.00'],
   ])('writes %s %s as the site does: %s', (amount, currency, text) => {
     expect(formatAmount(amount, currency, 'price')).toBe(text);
   });
@@ -101,17 +110,20 @@ describe('writing amounts for the converter', () => {
     expect(formatAmount(12_941_000.5, 'JPY', 'money')).toBe('12,941,001');
   });
 
-  it('gives money below 1 the price’s digits: 4 decimals from 0.01, 4 significant digits below', () => {
+  it('gives money below 1 the price’s digits: 4 decimals from 0.01, 4 significant digits below, by the size as shown', () => {
     expect(formatAmount(1, 'USD', 'money')).toBe('1.00');
-    expect(formatAmount(0.99995, 'USD', 'money')).toBe('1.0000');
+    expect(formatAmount(0.99995, 'USD', 'money')).toBe('1.00');
+    expect(formatAmount(0.99994, 'USD', 'money')).toBe('0.9999');
     expect(formatAmount(0.5, 'USD', 'money')).toBe('0.5000');
     expect(formatAmount(0.123456, 'USD', 'money')).toBe('0.1235');
     expect(formatAmount(0.01, 'USD', 'money')).toBe('0.0100');
+    expect(formatAmount(0.0099996, 'USD', 'money')).toBe('0.0100');
     expect(formatAmount(0.00999, 'USD', 'money')).toBe('0.00999');
     expect(formatAmount(0.00615, 'USD', 'money')).toBe('0.00615');
     expect(formatAmount(0.0000043, 'USD', 'money')).toBe('0.0000043');
     expect(formatAmount(0.5, 'JPY', 'money')).toBe('0.5000');
     expect(formatAmount(1, 'JPY', 'money')).toBe('1');
+    expect(formatAmount(0.99995, 'JPY', 'money')).toBe('1');
     expect(formatAmount(0.5, 'INR', 'money')).toBe('0.5000');
     expect(formatAmount(0.5, 'CHF', 'money')).toBe('0.5000');
     expect(formatAmount(0, 'USD', 'money')).toBe('0');
