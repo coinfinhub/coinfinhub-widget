@@ -382,6 +382,17 @@ const rules = /* css */ `
     min-height: 32px;
   }
 }
+@container cfh (max-width: 259px) {
+  :host(:not([layout='strip' i])) .cfh-item {
+    grid-template-columns: auto 1fr;
+  }
+  :host(:not([layout='strip' i])) .cfh-item .cfh-val {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.1em 0.6em;
+  }
+}
 @container cfh (min-width: 260px) {
   .cfh-one .cfh-price {
     font-size: 1.5em;
