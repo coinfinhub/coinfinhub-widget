@@ -1,1 +1,1 @@
-{"error":{"status":429,"code":"rate_limited","message":"Too many requests. This endpoint is for the CoinFinHub widgets; for data access, contact CoinFinHub.","retryAfter":60}}
+{"error":{"status":429,"code":"rate_limited","message":"Too many requests. Try again in a minute.","retryAfter":60}}
