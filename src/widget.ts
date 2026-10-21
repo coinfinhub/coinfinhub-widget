@@ -20,7 +20,10 @@ const OWN_MESSAGE = new Set([...BAD_COIN, 'no_coin', 'invalid_currency', 'invali
  */
 const PLAIN = new Set(['network', 'bad_response', 'unavailable', 'prices_unavailable', 'rate_limited', 'rate_unavailable', 'widget_off']);
 
-/** The newest updatedAt among the coins, 0 when none has one. */
+/**
+ * The newest updatedAt among the coins, 0 when none has one. It is on the browser's clock, set by the server's
+ * (src/api.ts), so Date.now() minus it is the prices' age even when the visitor's clock is wrong.
+ */
 const newest = (data: Coins | null): number => Math.max(0, ...(data?.coins ?? []).map((coin) => coin.updatedAt ?? 0));
 /** A failure the widget finds itself, before any call. */
 const NO_CALL = { ok: false, retryAfter: null } as const;

@@ -15,7 +15,7 @@ Four small widgets that show coin prices from [CoinFinHub](https://www.coinfinhu
 Add the script once per page, however many widgets it has:
 
 ```html
-<script type="module" src="https://cdn.coinfinhub.com/widgets/1.0.0/coinfinhub-widget.js" integrity="sha384-2GQuSLIa7qDJa/X+XJnqWiFv6bHfGZQBD1dCQx8Y2GquW6Q91WFWXEFvpLliyzYF" crossorigin="anonymous"></script>
+<script type="module" src="https://cdn.coinfinhub.com/widgets/1.0.0/coinfinhub-widget.js" integrity="sha384-Gp+KxmPND2FyaEfAHL2XfRctQ8WwGSHvsGQ7SfoCjMXw0uYQe5iLQuHKab2au5T9" crossorigin="anonymous"></script>
 ```
 
 Then put a widget where it should appear. Each one carries a plain link inside it, which shows instead when JavaScript is off or the browser is older than the ones below.
@@ -54,7 +54,7 @@ Then put a widget where it should appear. Each one carries a plain link inside i
 - **A mirror on jsDelivr**, the same file built from this repo's release tag, with the same hash:
 
   ```html
-  <script type="module" src="https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@1.0.0/dist/coinfinhub-widget.js" integrity="sha384-2GQuSLIa7qDJa/X+XJnqWiFv6bHfGZQBD1dCQx8Y2GquW6Q91WFWXEFvpLliyzYF" crossorigin="anonymous"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@1.0.0/dist/coinfinhub-widget.js" integrity="sha384-Gp+KxmPND2FyaEfAHL2XfRctQ8WwGSHvsGQ7SfoCjMXw0uYQe5iLQuHKab2au5T9" crossorigin="anonymous"></script>
   ```
 
 - **The latest 1.x**, which picks up fixes and additions within version 1 without editing your page. It can't carry an `integrity` hash, since the file behind it changes:
@@ -86,7 +86,7 @@ Change `coin`, `coins`, `top`, `chart`, `currency` or `api` and the widget fetch
 ## What they show
 
 - **Every coin:** its logo (or the first letter of its symbol in a circle), name or symbol, price, and the 24-hour change as "▼ −1.34% 24h": arrow, sign and period always together, so colour is never the only signal. A change that rounds to 0.00% is flat: "• 0.00% 24h", in grey.
-- **Prices** are written in the visitor's browser: two decimals from 1 up (none in yen), four significant digits below 1 ($0.6512, $0.00000436), with the currency's sign and a true minus.
+- **Prices** are written in the visitor's browser, as on CoinFinHub's own pages: two decimals from 1 up (none in yen), four decimals from 0.01 up to 1 ($0.4610), and four significant digits below 0.01 ($0.00000436), with the currency's sign and a true minus.
 - **A badge** for a coin with little trading ("Little trading": its price may be far from what you'd pay) or one that stopped trading ("No trades since 1 Oct 2026": the last price, with no change), so a page never shows a dead coin's old price as live.
 - **The 7-day line** on the price card with `chart="7d"`: coloured by which way the week went, labelled "7d", and named for screen readers ("Price over 7 days, up").
 - **The converter** works out either field from the other as the visitor types, from the price CoinFinHub sends. Commas, spaces and an empty field are fine. It is labelled "For display, not a quote".
@@ -123,7 +123,7 @@ Prices are in US dollars first. CoinFinHub converts them with a dollar rate it d
 - Every 60 seconds plus up to 10 seconds of jitter, and only while the widget is on screen and the tab is visible.
 - Widgets share requests. The widgets on a page refresh together, on one clock, and those that come on screen together ask in one call per currency (and 7-day line), up to 20 coins a call. Every ranked list (`top`) is cut from one call for the top 20, whose coins also answer for widgets that name them. Each coin is asked for at most once a minute, however many widgets show it and however often their attributes change.
 - After a failed request a widget retries after 10 to 15 seconds, then backs off to 5 minutes, or waits as long as the server asks. A retry always reaches the server: failures aren't reused, unless the server asked to wait.
-- When CoinFinHub is busy it may answer with prices up to a few minutes old. Prices more than 3 minutes old say so in the footer ("Updated 4 min ago"), worked out again on every refresh.
+- When CoinFinHub is busy it may answer with prices up to a few minutes old. Prices more than 3 minutes old say so in the footer ("Updated 4 min ago"), worked out again on every refresh. The age goes by CoinFinHub's clock, sent with every answer, so a visitor's clock that is wrong doesn't change it.
 - Requests are plain GETs with no cookies and no custom headers.
 
 ## Browser support

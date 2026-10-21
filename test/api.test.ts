@@ -351,6 +351,52 @@ describe('a 200 answer', () => {
   });
 });
 
+describe("the server's clock", () => {
+  const MINUTE = 60_000;
+  const HOUR = 60 * MINUTE;
+  /** When coins-usd's bitcoin was read (its updatedAt). */
+  const READ = Date.parse('2026-10-06T10:55:01.352Z');
+
+  /** coins-usd's bitcoin, on a browser clock at `clock`, from an answer whose now is `now` (left out if undefined). */
+  async function bitcoinAt(clock: number, now: unknown): Promise<Coin> {
+    vi.setSystemTime(clock);
+    stubFetch(() => {
+      const body = fixture('coins-usd');
+      if (now === undefined) delete body.now;
+      else body.now = now;
+      return new Response(JSON.stringify(body));
+    });
+    const answer = await getCoins(freshBase(), 'USD', false, ['bitcoin']);
+    const coin = answer.ok ? answer.coins[0] : undefined;
+    if (!coin) throw new Error('expected bitcoin');
+    return coin;
+  }
+
+  it.each([
+    ['right', 0],
+    ['2 hours slow', -2 * HOUR],
+    ['2 hours fast', 2 * HOUR],
+    ['3 days slow', -72 * HOUR],
+  ])("puts updatedAt on the browser's clock when it is %s, so the age is the server's", async (_, skew) => {
+    // The server answers 4 minutes after the price was read, to the second.
+    const coin = await bitcoinAt(READ + 4 * MINUTE + skew, '2026-10-06T10:59:01Z');
+    expect(coin.updatedAt).toBe(READ + skew + 352);
+    expect(Date.now() - (coin.updatedAt ?? 0)).toBe(4 * MINUTE - 352);
+  });
+
+  it.each([
+    ['missing', undefined],
+    ['null', null],
+    ['empty', ''],
+    ['not a time', 'soon'],
+    ['a number', READ + 4 * MINUTE],
+  ])("goes by the browser's clock when now is %s, and keeps the answer", async (_, now) => {
+    const coin = await bitcoinAt(READ + 2 * HOUR, now);
+    expect(coin.updatedAt).toBe(READ);
+    expect(coin.price).toBe('$86,091.97');
+  });
+});
+
 describe('an error answer', () => {
   it.each([
     ['error-invalid-coin', 'invalid_coin', null],

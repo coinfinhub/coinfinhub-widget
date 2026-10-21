@@ -20,22 +20,29 @@ export function parseAmount(typed: string): number | null {
   return /^-?(\d+\.?\d*|\.\d+)$/.test(text) ? Number(text) : null;
 }
 
+/** How many digits an amount of this size gets (see formatAmount). */
+function digits(size: number, currency: string, coin: boolean): Intl.NumberFormatOptions {
+  if (coin) return size < 1 ? { maximumSignificantDigits: 6 } : { maximumFractionDigits: 6 };
+  const decimals = size >= 1 ? (currency === 'JPY' ? 0 : 2) : size >= 0.01 ? 4 : null;
+  return decimals === null ? { maximumSignificantDigits: 4 } : { minimumFractionDigits: decimals, maximumFractionDigits: decimals };
+}
+
 /**
  * An amount, grouped as the currency's country groups (lakh grouping for INR), with a true minus; '' for a number
  * that isn't one.
- * - `price`: money with the currency's sign as Intl writes it, "$86,091.97", "₹82,99,733.90", "¥12,941,000";
+ * - `price`: money with the currency's sign as Intl writes it, "$86,091.97", "₹82,99,733.90", "¥12,941,001";
  * - `money`: the same digits without the sign, for the converter's field;
- *   both with the currency's own decimals from 1 up (2, none in yen) and 4 significant digits below 1, "$0.00000436";
+ *   both as CoinFinHub's pages write prices: 2 decimals from 1 unit up (none in yen), 4 decimals from 0.01 up to 1
+ *   ("$0.4610"), and 4 significant digits below 0.01 ("$0.000004362");
  * - `coin`: an amount of a coin, up to 6 decimals, or 6 significant digits below 1.
  * Throws for a currency code Intl can't read.
  */
 export function formatAmount(amount: number, currency: string, kind: 'price' | 'money' | 'coin'): string {
   if (!Number.isFinite(amount)) return '';
-  const small = Math.abs(amount) < 1;
   const coin = kind === 'coin';
   const format = new Intl.NumberFormat(currency === 'INR' ? 'en-IN' : 'en-US', {
     ...(coin ? {} : { style: 'currency', currency }),
-    ...(small ? { maximumSignificantDigits: coin ? 6 : 4 } : coin ? { maximumFractionDigits: 6 } : {}),
+    ...digits(Math.abs(amount), currency, coin),
   });
   const parts = format.formatToParts(amount);
   // Without the sign: the number alone, also when the sign comes with a space ("CHF 12.30").

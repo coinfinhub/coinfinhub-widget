@@ -6,9 +6,14 @@ import { afterEach, beforeEach, vi } from 'vitest';
 // A string path: under happy-dom, URL is the DOM's class, which node:fs doesn't accept.
 const fixtures = join(dirname(fileURLToPath(import.meta.url)), 'fixtures');
 
-/** A fixture body from test/fixtures (the contract's examples). */
+/**
+ * A fixture body from test/fixtures (the contract's examples), as the endpoint would send it at this moment: its
+ * `now`, when it is a time, is the tests' clock (a server whose clock is right). Tests of a wrong clock set their own.
+ */
 export function fixture(name: string): Record<string, unknown> {
-  return JSON.parse(readFileSync(join(fixtures, `${name}.json`), 'utf8')) as Record<string, unknown>;
+  const body = JSON.parse(readFileSync(join(fixtures, `${name}.json`), 'utf8')) as Record<string, unknown>;
+  if (typeof body.now === 'string' && !Number.isNaN(Date.parse(body.now))) body.now = new Date().toISOString();
+  return body;
 }
 
 interface FixtureCoin {

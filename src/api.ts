@@ -30,6 +30,11 @@ export interface Coin {
   /** "Little trading", "No trades since 1 Oct 2026", or null. */
   badge: string | null;
   url: string;
+  /**
+   * When CoinFinHub read the price, on the browser's clock: the answer's updatedAt moved by how far the server's
+   * clock (the answer's `now`) is from the browser's, so its age, Date.now() − updatedAt, is right on a visitor's
+   * wrong clock, also between refreshes; null without one.
+   */
   updatedAt: number | null;
   /** The 7-day line, oldest first, when asked for and sent. */
   spark: number[] | null;
@@ -203,10 +208,11 @@ async function request(url: string, currency: string): Promise<Body> {
     if (!Array.isArray(b?.coins)) return fail('bad_response');
     // Prices in another currency than the one asked for would get the wrong sign: never shown.
     if (typeof b.currency === 'string' && b.currency.toUpperCase() !== currency) return fail('bad_response');
+    const offset = clockOffset(b.now);
     const coins = new Map<string, Coin | null>();
     for (const item of b.coins as unknown[]) {
       const slug = text(record(item)?.slug);
-      if (slug && !coins.has(slug)) coins.set(slug, readCoin(item, slug, currency));
+      if (slug && !coins.has(slug)) coins.set(slug, readCoin(item, slug, currency, offset));
     }
     // Any rate means the prices were converted from US dollars with CoinFinHub's ECB-derived rate.
     return { ok: true, coins, rate: record(b.rate) ? 'USD rate derived from ECB data' : null };
@@ -225,10 +231,19 @@ async function request(url: string, currency: string): Promise<Body> {
 const fail = (code: string): Failure => ({ ok: false, code, message: null, retryAfter: null });
 
 /**
+ * How far the server's clock is ahead of the browser's, from the answer's `now` (the server's time when it made
+ * the answer) as the answer arrives; 0, the browser's own clock, when `now` is missing or not a time.
+ */
+function clockOffset(now: unknown): number {
+  const at = typeof now === 'string' ? Date.parse(now) : NaN;
+  return Number.isNaN(at) ? 0 : at - Date.now();
+}
+
+/**
  * Reads one coin and writes its text. The name and a price above 0 are required; anything else may be missing,
  * and a value the widget doesn't know (a later trading state) is left out.
  */
-function readCoin(item: unknown, slug: string, currency: string): Coin | null {
+function readCoin(item: unknown, slug: string, currency: string, offset: number): Coin | null {
   const c = record(item) ?? {};
   const name = text(c.name);
   const value = isNumber(c.price) && c.price > 0 ? c.price : 0;
@@ -256,7 +271,7 @@ function readCoin(item: unknown, slug: string, currency: string): Coin | null {
     direction: change?.[1] ?? null,
     badge: c.trading === 'low' ? 'Little trading' : stopped ? (since ? `No trades since ${since}` : 'No trades') : null,
     url: siteLink(c.url) ?? coinLink(slug),
-    updatedAt: Number.isNaN(updatedAt) ? null : updatedAt,
+    updatedAt: Number.isNaN(updatedAt) ? null : updatedAt - offset,
     spark: line.length > 1 ? line : null,
   };
 }

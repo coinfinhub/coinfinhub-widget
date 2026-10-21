@@ -86,8 +86,11 @@ export async function answer(url, n, load) {
   const missing = slugs.filter((slug) => !bank.has(slug));
   if (!chosen.length) return error(await load('error-unknown-coin'));
 
-  // When CoinFinHub read the prices: just now, or 4 minutes ago for a cached answer.
-  const updatedAt = new Date(Date.now() - (scenario === 'old' ? 240_000 : 30_000)).toISOString();
+  // The server's time, to the second as the endpoint sends it, and when CoinFinHub read the prices: 30 seconds
+  // before, or 4 minutes before for a cached answer.
+  const at = Math.floor(Date.now() / 1000) * 1000;
+  const iso = (time) => new Date(time).toISOString().replace('.000Z', 'Z');
+  const updatedAt = iso(at - (scenario === 'old' ? 240_000 : 30_000));
   const lines = new Map((await load('coins-spark')).coins.map((coin) => [coin.slug, coin.sparkline7d]));
   const coins = chosen.map((usd) => {
     const fixed = currency === 'INR' ? inr.coins.find((coin) => coin.slug === usd.slug) : null;
@@ -111,5 +114,5 @@ export async function answer(url, n, load) {
     return coin;
   });
   const rate = currency === 'USD' ? null : currency === 'INR' ? inr.rate : { ...inr.rate, perUsd };
-  return { status: 200, body: { currency, coins, missing, rate } };
+  return { status: 200, body: { currency, coins, missing, rate, now: iso(at) } };
 }

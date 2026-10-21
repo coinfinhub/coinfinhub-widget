@@ -158,7 +158,7 @@ describe('states', () => {
   it('shows a stopped coin with its badge and no change', async () => {
     stubFetch((url) => only(['coins-usd'], url));
     const element = await price({ coin: 'haltcoin', api: freshBase() });
-    expect(part(element, '.cfh-price').textContent).toBe('$0.456');
+    expect(part(element, '.cfh-price').textContent).toBe('$0.4560');
     expect(part(element, '.cfh-badge').textContent).toBe('No trades since 1 Oct 2026');
     expect(shown(change(element))).toBe(false);
   });
@@ -643,6 +643,43 @@ describe('the age note', () => {
     await settle();
     expect(state(element)).toBe('data');
     expect(footText(element)).toBe('Updated 3 min ago');
+  });
+
+  /** Answers coins-usd with `now` from a server clock `ahead` of the browser's, or none (null), or `now` as given. */
+  function serverClock(ahead: number | null, now?: unknown) {
+    return stubFetch(() => {
+      const body = fixture('coins-usd');
+      if (ahead !== null) body.now = new Date(Date.now() + ahead).toISOString();
+      else if (now === undefined) delete body.now;
+      else body.now = now;
+      return new Response(JSON.stringify(body));
+    });
+  }
+
+  it.each([
+    ['2 h slow', 2 * HOUR],
+    ['2 h fast', -2 * HOUR],
+    ['a day fast', -24 * HOUR],
+  ])("goes by the server's clock when the visitor's is %s, also between refreshes", async (_, ahead) => {
+    serverClock(ahead);
+    // By the server's clock, the price is 4 minutes old.
+    const element = await agedBy(4 * MINUTE - ahead);
+    expect(footText(element)).toBe('Updated 4 min ago');
+    // Off screen, nothing is asked for; the next beat works the age out again, on the same offset.
+    scroll(element, false);
+    await wait(MINUTE);
+    expect(footText(element)).toBe('Updated 5 min ago');
+  });
+
+  it.each([
+    ['no now', undefined],
+    ['a now that isn’t a time', 'in a moment'],
+  ])("goes by the visitor's clock on an answer with %s", async (_, now) => {
+    serverClock(null, now);
+    const right = await agedBy(4 * MINUTE);
+    expect(state(right)).toBe('data');
+    expect(footText(right)).toBe('Updated 4 min ago');
+    expect(footText(await agedBy(2 * HOUR + 4 * MINUTE))).toBe('Updated 2 h ago');
   });
 
   it('is empty while loading and in the error state', async () => {
