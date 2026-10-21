@@ -22,7 +22,7 @@ export class CoinfinhubTicker extends Widget {
   #shift = 0;
 
   constructor() {
-    super('cfh-ticker', false);
+    super('cfh-ticker', false, 240);
     this.card.setAttribute('aria-label', 'Coin prices');
     // Focusable, so a keyboard can pause it (focus) or scroll it (reduced motion).
     this.#view = add(this.main, 'div', 'cfh-view');

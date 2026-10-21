@@ -549,12 +549,62 @@ describe('definition', () => {
     expect(names.map((name) => customElements.get(name))).toEqual(first);
   });
 
-  it('adopts one shared stylesheet', async () => {
+  it('adopts one shared stylesheet, and one of its own for its width', async () => {
     always('coins-usd');
     const api = freshBase();
     const one = await price({ coin: 'bitcoin', api });
     const two = await mount('coinfinhub-list', { coins: 'bitcoin', api });
-    expect(one.shadowRoot?.adoptedStyleSheets).toHaveLength(1);
+    expect(one.shadowRoot?.adoptedStyleSheets).toHaveLength(2);
     expect(one.shadowRoot?.adoptedStyleSheets[0]).toBe(two.shadowRoot?.adoptedStyleSheets[0]);
+    expect(one.shadowRoot?.adoptedStyleSheets[1]).not.toBe(two.shadowRoot?.adoptedStyleSheets[1]);
+  });
+});
+
+describe('width, background and border', () => {
+  /** The rules of the widget's own sheet. */
+  const own = (element: HTMLElement): string =>
+    [...(element.shadowRoot?.adoptedStyleSheets[1]?.cssRules ?? [])].map((rule) => rule.cssText).join(' ');
+
+  it('takes its maximum width from width, never below 200 px, and fills the container without one', async () => {
+    const mock = always('coins-usd');
+    const element = await price({ coin: 'bitcoin', width: '320', api: freshBase() });
+    expect(own(element)).toMatch(/:host\s*\{\s*max-width:\s*320px/);
+    const cases: [string, RegExp][] = [
+      ['120', /max-width:\s*200px/],
+      ['480.4', /max-width:\s*480px/],
+      ['0', /^$/],
+      ['', /^$/],
+      ['wide', /^$/],
+      ['300px', /^$/],
+      ['-50', /^$/],
+      ['1e9', /^$/],
+    ];
+    for (const [width, expected] of cases) {
+      element.setAttribute('width', width);
+      expect(own(element), width).toMatch(expected);
+    }
+    element.removeAttribute('width');
+    expect(own(element)).toBe('');
+    await settle();
+    // Only the look changed: no new request, and the host's own style attribute is never written.
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(state(element)).toBe('data');
+    expect(element.getAttribute('style')).toBeNull();
+  });
+
+  it('keeps the ticker at least 240 px wide', async () => {
+    always('coins-top');
+    const ticker = await mount('coinfinhub-ticker', { width: '200', api: freshBase() });
+    expect(own(ticker)).toMatch(/max-width:\s*240px/);
+  });
+
+  it('changes background and border without asking again', async () => {
+    const mock = always('coins-usd');
+    const element = await price({ coin: 'bitcoin', api: freshBase() });
+    element.setAttribute('background', 'transparent');
+    element.setAttribute('border', 'none');
+    await settle();
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(state(element)).toBe('data');
   });
 });

@@ -62,8 +62,13 @@ export function coinView(parent: Node, tag: 'div' | 'li', className: string): Co
     set(coin) {
       const letter = (Array.from(coin.symbol || coin.name)[0] ?? '').toUpperCase();
       const src = coin.logo && !broken.has(coin.logo) ? coin.logo : null;
+      // The lettered circle has a tint; a logo has none behind it, so the page or the card shows through.
+      const show = (content: string | HTMLImageElement): void => {
+        logo.replaceChildren(content);
+        logo.className = typeof content === 'string' ? 'cfh-logo' : 'cfh-logo cfh-pic';
+      };
       if (!src) {
-        if (logo.textContent !== letter || logo.firstElementChild) logo.textContent = letter;
+        if (logo.textContent !== letter || logo.firstElementChild) show(letter);
       } else if (logo.firstElementChild?.getAttribute('src') !== src) {
         const image = document.createElement('img');
         image.alt = '';
@@ -71,10 +76,10 @@ export function coinView(parent: Node, tag: 'div' | 'li', className: string): Co
         image.addEventListener('error', () => {
           broken.add(src);
           // Only while this image is still the one shown: a late error must not wipe a newer logo.
-          if (logo.firstElementChild === image) logo.textContent = letter;
+          if (logo.firstElementChild === image) show(letter);
         });
         image.src = src;
-        logo.replaceChildren(image);
+        show(image);
       }
       name.textContent = coin.name;
       symbol.textContent = coin.symbol;

@@ -15,7 +15,7 @@ Four small widgets that show coin prices from [CoinFinHub](https://www.coinfinhu
 Add the script once per page, however many widgets it has:
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@1.0.0/dist/coinfinhub-widget.js" integrity="sha384-4uklbnsuTbA/LvGCl94z+2o9CYqaQfP3rUOffi1hkicpTOqx0abExumUnIa7KsFa" crossorigin="anonymous"></script>
+<script type="module" src="https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@1.0.0/dist/coinfinhub-widget.js" integrity="sha384-0Gz84OlEq4cqspMQh7QgjMoVevKMUt7IOV4rVtWSqE/I/NK2nuSiMDHy5t2Ty/b/" crossorigin="anonymous"></script>
 ```
 
 Then put a widget where it should appear. Each one carries a plain link inside it, which shows instead when JavaScript is off or the browser is older than the ones below.
@@ -47,7 +47,7 @@ Then put a widget where it should appear. Each one carries a plain link inside i
 
 - **Which coin:** the end of its page address on CoinFinHub, such as `bitcoin` in `https://www.coinfinhub.com/price/bitcoin`. Search for the coin on coinfinhub.com to find it.
 - **Why the `integrity` hash:** it pins the exact file. If the file at that address ever changed, the browser would refuse to run it. A `@1` address that picks up fixes without editing your page (and so without the hash) will be documented here once it's tested.
-- The [demo](https://coinfinhub.github.io/coinfinhub-widget/) has a builder that writes the snippet for you.
+- The [demo](https://coinfinhub.github.io/coinfinhub-widget/) has a builder that writes the snippet for you: pick the widget and coins, the currency, a width, the theme, a transparent background or no outline, and see it live.
 
 ## Attributes
 
@@ -60,9 +60,14 @@ Then put a widget where it should appear. Each one carries a plain link inside i
 | `chart` | price | `none`, or `7d` for the 7-day line | `none` |
 | `currency` | all | `USD` `EUR` `GBP` `JPY` `CNY` `INR` `AUD` `CHF`, in any case | `USD` |
 | `theme` | all | `auto` follows the visitor's light or dark setting; `light` and `dark` fix it | `auto` |
+| `width` | all | The widest it gets, in CSS pixels, such as `320`. At least 200 (ticker 240): a smaller number counts as that. Empty, `0` or no number fills the container. | fills the container |
+| `background` | all | `transparent`: no surface, so your page shows through. | the widget's own surface |
+| `border` | all | `none`: no outline around the widget. | outlined |
 | `api` | all | The endpoint's base URL, for development and tests only. Leave it out. | `https://www.coinfinhub.com` |
 
-Change `coin`, `coins`, `top`, `chart`, `currency` or `api` and the widget fetches again; `theme` and `layout` change only the look. The converter's picker sets its own `currency` attribute.
+Change `coin`, `coins`, `top`, `chart`, `currency` or `api` and the widget fetches again; `theme`, `layout`, `width`, `background` and `border` change only the look. The converter's picker sets its own `currency` attribute.
+
+**With `background="transparent"`, pick the `theme` that matches your page** (`light` on a light page, `dark` on a dark one): the text and the up and down colours are made for their theme's surface, so on a background of the other kind they lose their contrast. `width` sets the widget's own maximum width inside its shadow root, so your page's styles still win if you set one.
 
 ## What they show
 
@@ -83,7 +88,7 @@ Prices are in US dollars first. CoinFinHub converts them with a dollar rate it d
 ## Size, look and fit
 
 - About 8 KB gzipped for all four widgets (CI fails any build over 12 KB). No dependencies and no fonts; the only images are the coins' logos, from `www.coinfinhub.com`.
-- Each widget fills its container from 200 px wide. Set a width on the element, or on what holds it. The layout adapts to its own width (container queries), not the window's.
+- Each widget fills its container from 200 px wide, or up to `width` if you give one. The layout adapts to its own width (container queries), not the window's.
 - Text follows your page's text size and the visitor's zoom, but never goes below 15 px, even if your page shrinks its root font size. The converter's fields stay at 16 px or more, so phones don't zoom in on them.
 - Each widget brings its own surface, border and colours (CoinFinHub's, light and dark), in Shadow DOM, so your page's styles don't leak in. It uses Inter if your page already loads it, otherwise the system font. There are no custom colours in v1.
 - Only the ticker moves, at the same speed whatever its width or number of coins, repeating them as often as needed to fill the strip. It stops while the pointer is over it or it has focus, and for visitors who ask for reduced motion it stands still and scrolls sideways by hand.

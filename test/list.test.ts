@@ -95,6 +95,24 @@ describe('<coinfinhub-list>', () => {
     expect(queries(mock)).toEqual([`ids=bitcoin,${coins.slice(0, 19).join(',')}&currency=USD`]);
   });
 
+  it('marks a logo shown as an image, so its circle has no tint behind it', async () => {
+    // A logo address of its own, so marking it as failed never touches other tests.
+    stubFetch((url) => {
+      const body = only(['coins-top'], url);
+      return body.json().then((json: { coins: { logo: string | null }[] }) => {
+        const [first] = json.coins;
+        if (first) first.logo = 'https://www.coinfinhub.com/coin-logos/small/bitcoin.png?v=tint';
+        return new Response(JSON.stringify(json));
+      });
+    });
+    const element = await mount('coinfinhub-list', { coins: 'bitcoin,ethereum', api: freshBase() });
+    const [bitcoin, ethereum] = parts(element, '.cfh-logo');
+    expect(bitcoin?.className).toBe('cfh-logo cfh-pic');
+    expect(ethereum?.className).toBe('cfh-logo');
+    bitcoin?.querySelector('img')?.dispatchEvent(new Event('error'));
+    expect(bitcoin?.className).toBe('cfh-logo');
+  });
+
   it('keeps its rows and logos between refreshes', async () => {
     byIds('coins-top');
     const element = await mount('coinfinhub-list', { coins: 'bitcoin,ethereum', api: freshBase() });

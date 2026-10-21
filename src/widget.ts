@@ -50,7 +50,7 @@ export function slugs(value: string | null): string[] {
 }
 
 export abstract class Widget extends HTMLElement {
-  static observedAttributes = ['currency', 'api'];
+  static observedAttributes = ['currency', 'api', 'width'];
 
   protected readonly card: HTMLDivElement;
   protected readonly main: HTMLDivElement;
@@ -59,6 +59,10 @@ export abstract class Widget extends HTMLElement {
   readonly #note: HTMLParagraphElement;
   readonly #link: HTMLAnchorElement;
   readonly #rate: HTMLSpanElement;
+  /** The narrowest width="…" may make it. */
+  readonly #least: number;
+  /** This widget's own sheet, beside the shared one: its width, so the host's styles are never touched. */
+  readonly #own = new CSSStyleSheet();
 
   #live = false;
   #key = '';
@@ -74,12 +78,16 @@ export abstract class Widget extends HTMLElement {
   #usdFor = '';
   #usdUntil = 0;
 
-  /** `kind` is the card's own class, if it needs one; `one` is true for the widgets that show a single coin. */
-  constructor(kind: string, one: boolean) {
+  /**
+   * `kind` is the card's own class, if it needs one; `one` is true for the widgets that show a single coin;
+   * `least` is the narrowest width="…" may set.
+   */
+  constructor(kind: string, one: boolean, least = 200) {
     super();
     this.#one = one;
+    this.#least = least;
     const root = this.attachShadow({ mode: 'open' });
-    root.adoptedStyleSheets = [styleSheet()];
+    root.adoptedStyleSheets = [styleSheet(), this.#own];
     const card = (this.card = add(root, 'div', `cfh-card ${kind}`.trim()));
     card.setAttribute('role', 'group');
     // English text, read as English and laid out left to right on any host page.
@@ -165,8 +173,14 @@ export abstract class Widget extends HTMLElement {
     this.#busy = false;
   }
 
-  attributeChangedCallback(_name: string, before: string | null, after: string | null): void {
-    if (this.#live && before !== after) this.#restart();
+  attributeChangedCallback(name: string, before: string | null, after: string | null): void {
+    if (name === 'width') {
+      // A number of CSS pixels, never below the least; anything else, or 0, fills the container.
+      const width = Math.round(Number(after));
+      this.#own.replaceSync(width > 0 && width < 1e5 ? `:host{max-width:${String(Math.max(this.#least, width))}px}` : '');
+    } else if (this.#live && before !== after) {
+      this.#restart();
+    }
   }
 
   readonly #onVisibility = (): void => {

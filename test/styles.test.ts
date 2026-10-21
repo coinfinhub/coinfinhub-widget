@@ -92,6 +92,16 @@ describe('the stylesheet', () => {
     expect(rules).toMatch(/@container cfh \(min-width: \d+px\)/);
   });
 
+  it('drops the surface for background="transparent" and the outline for border="none", nothing else', () => {
+    expect(rules).toMatch(/:host\(\[background='transparent' i\]\) \.cfh-card\s*\{\s*background:\s*transparent;?\s*\}/);
+    expect(rules).toMatch(/:host\(\[border='none' i\]\) \.cfh-card\s*\{\s*border-color:\s*transparent;?\s*\}/);
+  });
+
+  it('has no tint behind a logo, only behind its letter', () => {
+    expect(rules).toMatch(/\.cfh-logo\s*\{[^}]*background:\s*var\(--cfh-accent-soft\)/);
+    expect(rules).toMatch(/\.cfh-pic\s*\{\s*background:\s*none/);
+  });
+
   it('uses Inter when the page has it, with no font download', () => {
     expect(rules).toContain('font-family: inter, system-ui, sans-serif');
     expect(rules).not.toMatch(/@font-face|@import|url\(/);

@@ -68,6 +68,12 @@ const rules = /* css */ `
   background: var(--cfh-surface);
   overflow-wrap: anywhere;
 }
+:host([background='transparent' i]) .cfh-card {
+  background: transparent;
+}
+:host([border='none' i]) .cfh-card {
+  border-color: transparent;
+}
 .cfh-main {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -110,11 +116,13 @@ const rules = /* css */ `
   font-weight: 700;
   line-height: 1;
 }
+.cfh-pic {
+  background: none;
+}
 .cfh-logo img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  background: var(--cfh-surface);
 }
 .cfh-id {
   display: flex;
