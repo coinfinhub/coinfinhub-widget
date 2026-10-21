@@ -77,7 +77,7 @@ test('the demo shows every widget and state from another origin, with no errors'
   await expect(item('Price card').locator('.cfh-spark').first()).toBeVisible();
   await expect(item('List').first().locator('coinfinhub-list').first().locator('.cfh-item')).toHaveCount(5);
   await expect(item('Headline strip').locator('coinfinhub-list').first().locator('.cfh-item')).toHaveCount(4);
-  await expect(item('Ticker').locator('coinfinhub-ticker').first().locator('.cfh-run').first().locator('.cfh-tick')).toHaveCount(5);
+  await expect(item('Ticker').locator('coinfinhub-ticker').first().locator('.cfh-run').first().locator('.cfh-tick')).toHaveCount(10);
   await expect(item('Converter').locator('.cfh-sum').first()).toHaveText(`1 BTC = ${BITCOIN}`);
   const figure = (caption: string) => page.locator('figure').filter({ has: page.locator('figcaption', { hasText: caption }) });
   await expect(figure('Loading').locator('.cfh-status')).toHaveText('Loading price…');
@@ -94,8 +94,9 @@ test('the demo shows every widget and state from another origin, with no errors'
   expect(errors).toEqual([]);
 });
 
-test('the demo falls back to sample data, and its builder writes the snippet', async ({ page }) => {
+test('the builder previews every choice live and writes only what differs from the defaults', async ({ page }) => {
   await page.goto('/');
+  const form = page.locator('#cfh-demo-form');
   await expect(page.locator('#cfh-demo-source')).toContainText('sample data');
   const preview = page.locator('#cfh-demo-live');
   const snippet = page.locator('#cfh-demo-snippet');
@@ -103,20 +104,75 @@ test('the demo falls back to sample data, and its builder writes the snippet', a
   await preview.scrollIntoViewIfNeeded();
   await expect(preview.locator('.cfh-price')).toHaveText(BITCOIN);
   await expect(snippet).toContainText('integrity="sha384-');
-  await page.locator('select[name=currency]').selectOption('INR');
-  await page.locator('select[name=chart]').selectOption('7d');
+  await expect(snippet).toContainText('<coinfinhub-price coin="bitcoin"><a href="https://www.coinfinhub.com/price/bitcoin"');
+
+  // The coin box: a combobox over the top coins, filtered as you type, used with the keyboard.
+  const box = page.getByRole('combobox', { name: 'Coin', exact: true });
+  const listbox = page.getByRole('listbox');
+  await box.fill('eth');
+  await expect(box).toHaveAttribute('aria-expanded', 'true');
+  await expect(listbox.getByRole('option')).toHaveCount(1);
+  await expect(listbox.getByRole('option')).toContainText('Ethereum');
+  await box.press('ArrowDown');
+  await expect(box).toHaveAttribute('aria-activedescendant', 'cfh-demo-option-ethereum');
+  await box.press('Enter');
+  await expect(box).toHaveValue('Ethereum (ETH)');
+  await expect(box).toHaveAttribute('aria-expanded', 'false');
+  await expect(snippet).toContainText('<coinfinhub-price coin="ethereum"><a href="https://www.coinfinhub.com/price/ethereum"');
+  await expect(preview.locator('.cfh-name')).toHaveText('Ethereum');
+  await box.fill('b');
+  await expect(box).toHaveAttribute('aria-expanded', 'true');
+  await box.press('Escape');
+  await expect(box).toHaveAttribute('aria-expanded', 'false');
+  // A slug that isn't in the list is allowed; anything else says what a slug is.
+  await box.fill('Not a slug!');
+  await box.press('Enter');
+  await expect(page.locator('#cfh-demo-coin-error')).toContainText("That isn't a coin's slug");
+  await box.fill('some-coin');
+  await box.press('Enter');
+  await expect(snippet).toContainText('<coinfinhub-price coin="some-coin">');
+  await expect(page.locator('#cfh-demo-coin-hint')).toContainText('Find more coins on coinfinhub.com/widgets');
+  await box.fill('bitcoin');
+  await box.press('Enter');
+
+  // Currency, chart, width (never under the minimum), theme, background and outline.
+  await expect(form.getByLabel('Currency').locator('option').first()).toHaveText('USD — US Dollar');
+  await form.getByLabel('Currency').selectOption('INR');
+  await form.getByLabel('Chart').selectOption('7d');
+  await form.getByLabel('Width (px)').fill('120');
+  await form.getByLabel('Theme').selectOption('dark');
+  await form.getByLabel('Transparent background').check();
+  await form.getByLabel('Outlined').uncheck();
+  await expect(snippet).toContainText(
+    '<coinfinhub-price coin="bitcoin" chart="7d" currency="INR" theme="dark" width="200" background="transparent" border="none">',
+  );
   await expect(preview.locator('.cfh-price')).toHaveText(BITCOIN_INR);
-  await expect(snippet).toContainText('<coinfinhub-price coin="bitcoin" chart="7d" currency="INR" theme="auto"><a href="https://www.coinfinhub.com/price/bitcoin"');
-  await page.locator('select[name=widget]').selectOption('list');
-  await expect(page.locator('input[name=coin]')).toBeHidden();
-  await page.locator('select[name=layout]').selectOption('strip');
-  await expect(preview.locator('coinfinhub-list .cfh-item')).toHaveCount(5);
-  await expect(snippet).toContainText('<coinfinhub-list top="5" layout="strip" currency="INR" theme="auto"><a href="https://www.coinfinhub.com/"');
-  await page.locator('input[name=coins]').fill('Ethereum, bitcoin');
-  await expect(snippet).toContainText('<coinfinhub-list coins="ethereum,bitcoin" layout="strip"');
-  await page.locator('select[name=widget]').selectOption('ticker');
-  await page.locator('input[name=coins]').fill('');
-  await expect(snippet).toContainText('<coinfinhub-ticker top="10" currency="INR" theme="auto">');
+  await expect(preview.locator('coinfinhub-price')).toHaveAttribute('background', 'transparent');
+
+  // A list: the top coins, the default count left out, or coins chosen one by one as chips.
+  await form.getByLabel('Widget').selectOption('list');
+  await expect(box).toBeHidden();
+  await expect(snippet).toContainText('<coinfinhub-list currency="INR" theme="dark" width="200" background="transparent" border="none">');
+  await form.getByLabel('How many (1 to 20)').fill('3');
+  await expect(snippet).toContainText('<coinfinhub-list top="3" currency="INR"');
+  await expect(preview.locator('coinfinhub-list .cfh-item')).toHaveCount(3);
+  await form.getByLabel('Coins I choose').check();
+  const adder = page.getByRole('combobox', { name: 'Add coins', exact: true });
+  await adder.fill('sol');
+  await adder.press('ArrowDown');
+  await adder.press('Enter');
+  await adder.fill('bnb');
+  await adder.press('Enter');
+  await expect(page.locator('#cfh-demo-chips li')).toHaveCount(2);
+  await expect(snippet).toContainText('<coinfinhub-list coins="solana,bnb" currency="INR"');
+  await expect(preview.locator('coinfinhub-list .cfh-name')).toHaveText(['Solana', 'BNB']);
+  await page.getByRole('button', { name: 'Remove Solana' }).click();
+  await expect(snippet).toContainText('<coinfinhub-list coins="bnb" currency="INR"');
+
+  // The ticker: its own default count, and its own minimum width.
+  await form.getByLabel('Widget').selectOption('ticker');
+  await form.getByLabel('Top coins').check();
+  await expect(snippet).toContainText('<coinfinhub-ticker currency="INR" theme="dark" width="240" background="transparent" border="none">');
 });
 
 test('has no accessibility violations (axe), in light and dark', async ({ page }) => {
@@ -145,7 +201,7 @@ test('widgets on screen together share one call, whatever they show', async ({ p
   ]);
   await expect(page.locator('.cfh-price').first()).toHaveText(BITCOIN);
   await expect(page.locator('coinfinhub-list .cfh-item')).toHaveCount(2);
-  await expect(page.locator('coinfinhub-ticker .cfh-run').first().locator('.cfh-tick')).toHaveCount(5);
+  await expect(page.locator('coinfinhub-ticker .cfh-run').first().locator('.cfh-tick')).toHaveCount(10);
   expect((await calls(request, ns)).sort()).toEqual(
     ['?ids=bitcoin,ethereum,tether&currency=USD', '?top=20&currency=USD', '?ids=bitcoin&currency=INR'].sort(),
   );
@@ -222,6 +278,36 @@ test('every widget fits 200 px without sideways overflow, with link targets at l
   for (const field of await page.locator('coinfinhub-converter .cfh-in').all()) {
     expect((await field.boundingBox())?.height).toBeGreaterThanOrEqual(32);
   }
+});
+
+test('takes width, a transparent background and no outline, without asking again', async ({ page, request }) => {
+  await page.goto('/blank.html');
+  const ns = unique('t');
+  const api = `${API}/${ns}`;
+  await add(page, [
+    ['coinfinhub-price', { coin: 'bitcoin', width: '320', api }],
+    ['coinfinhub-ticker', { width: '100', api }],
+  ]);
+  const price = page.locator('coinfinhub-price');
+  await expect(price.locator('.cfh-price')).toHaveText(BITCOIN);
+  await expect(page.locator('coinfinhub-ticker .cfh-tick').first()).toBeVisible();
+  const asked = (await calls(request, ns)).length;
+  expect((await price.boundingBox())?.width).toBe(320);
+  expect((await page.locator('coinfinhub-ticker').boundingBox())?.width).toBe(240);
+  const card = price.locator('.cfh-card');
+  const look = () => card.evaluate((node) => [getComputedStyle(node).backgroundColor, getComputedStyle(node).borderTopColor]);
+  expect(await look()).toEqual(['rgb(255, 255, 255)', 'rgb(232, 232, 239)']);
+  await price.evaluate((node) => {
+    node.setAttribute('background', 'transparent');
+    node.setAttribute('border', 'none');
+    node.setAttribute('width', '');
+  });
+  expect(await look()).toEqual(['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0)']);
+  expect((await price.boundingBox())?.width).toBeGreaterThan(320);
+  // The text keeps its theme's colour on the page's own background.
+  expect(await price.locator('.cfh-name').evaluate((node) => getComputedStyle(node).color)).toBe('rgb(19, 24, 64)');
+  expect(await calls(request, ns)).toHaveLength(asked);
+  expect(await price.getAttribute('style')).toBeNull();
 });
 
 test('switches theme with the attribute and the colour scheme', async ({ page }) => {

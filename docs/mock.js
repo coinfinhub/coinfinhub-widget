@@ -9,14 +9,27 @@
 //   /limited/…  429 rate_limited once (retryAfter 60), then answers
 //   anything else, such as /t-1234/, answers normally: tests use it to count their own calls.
 // Coins: those in the fixtures (coins-top, coins-usd), among them quietcoin (little trading) and haltcoin
-// (no trades), plus hostile; any other well-formed slug is missing. Currencies: USD and INR from the
-// fixtures, the others worked out with sample rates; CHF has no rate, to show rate_unavailable.
+// (no trades), a few more real coins of the demo's own (SAMPLES), and hostile; any other well-formed slug
+// is missing. Real coins carry their logo on www.coinfinhub.com, as the endpoint would send it. Currencies:
+// USD and INR from the fixtures, the others worked out with sample rates; CHF has no rate, to show
+// rate_unavailable.
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'INR', 'AUD', 'CHF'];
 const RATES = { EUR: 0.8573, GBP: 0.7461, JPY: 150.31, CNY: 7.1234, AUD: 1.5172 };
 const SLUG = /^(?=.{1,100}$)[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ROUTE = /^\/(?:([^/]+)\/)?api\/widget\/v1\/coins$/;
 const BANK = ['coins-top', 'coins-usd', 'coins-hostile'];
+/** Real coins, which have a logo on CoinFinHub. */
+const REAL = new Set(['bitcoin', 'ethereum', 'bnb', 'xrp', 'usdc', 'tether', 'solana', 'tron', 'dogecoin', 'cardano', 'chainlink']);
+const logo = (slug) => (REAL.has(slug) ? `https://www.coinfinhub.com/coin-logos/small/${slug}.png?v=1` : null);
+/** The demo's own sample coins, ranked after the fixtures' five (illustrative prices). */
+const SAMPLES = [
+  ['solana', 'Solana', 'SOL', 6, 162.08, 2.31],
+  ['tron', 'TRON', 'TRX', 7, 0.2731, 0.62],
+  ['dogecoin', 'Dogecoin', 'DOGE', 8, 0.1834, -2.41],
+  ['cardano', 'Cardano', 'ADA', 9, 0.6512, -1.08],
+  ['chainlink', 'Chainlink', 'LINK', 10, 17.42, 1.57],
+];
 
 const minus = (text) => text.replace('-', '−');
 const money = (value, currency) =>
@@ -71,6 +84,22 @@ export async function answer(url, n, load) {
 
   const bank = new Map();
   for (const name of BANK) for (const coin of (await load(name)).coins) if (!bank.has(coin.slug)) bank.set(coin.slug, coin);
+  for (const [slug, name, symbol, rank, price, change] of SAMPLES) {
+    const shown = Math.abs(change).toFixed(2);
+    bank.set(slug, {
+      slug,
+      name,
+      symbol,
+      logo: null,
+      rank,
+      price,
+      change24h: change,
+      trading: 'listed',
+      updatedAt: '2026-10-06T10:55:01.352Z',
+      url: `https://www.coinfinhub.com/price/${slug}`,
+      display: { price: money(price, 'USD'), change: `${change < 0 ? '\u2212' : '+'}${shown}%`, direction: change < 0 ? 'down' : 'up', badge: null },
+    });
+  }
   const chosen =
     top !== null
       ? [...bank.values()].filter((coin) => coin.rank >= 1 && coin.rank <= Number(top)).sort((a, b) => a.rank - b.rank)
@@ -86,6 +115,7 @@ export async function answer(url, n, load) {
     const coin = fixed
       ? copy(fixed)
       : { ...copy(usd), price, display: { ...usd.display, price: perUsd === 1 ? usd.display.price : money(price, currency) } };
+    coin.logo ??= logo(coin.slug);
     const { display } = coin;
     delete coin.display;
     delete coin.sparkline7d;

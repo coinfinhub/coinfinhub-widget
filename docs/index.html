@@ -72,47 +72,99 @@
   </section>
 
   <section aria-labelledby="cfh-demo-build">
-    <h2 id="cfh-demo-build">Build your snippet</h2>
-    <form id="cfh-demo-form" class="cfh-demo-form">
-      <label>Widget
-        <select name="widget">
-          <option value="price">Price card</option>
-          <option value="list">List</option>
-          <option value="ticker">Ticker</option>
-          <option value="converter">Converter</option>
-        </select>
-      </label>
-      <label data-for="price converter">Coin <input name="coin" value="bitcoin" autocomplete="off" spellcheck="false"></label>
-      <label data-for="list ticker">Coins <input name="coins" placeholder="the top coins" autocomplete="off" spellcheck="false" aria-describedby="cfh-demo-coins-hint"></label>
-      <label data-for="list ticker">Top <input name="top" type="number" min="1" max="20" value="5"></label>
-      <label>Currency
-        <select name="currency">
-          <option>USD</option><option>EUR</option><option>GBP</option><option>JPY</option>
-          <option>CNY</option><option>INR</option><option>AUD</option><option>CHF</option>
-        </select>
-      </label>
-      <label>Theme
-        <select name="theme">
-          <option>auto</option><option>light</option><option>dark</option>
-        </select>
-      </label>
-      <label data-for="list">Layout
-        <select name="layout">
-          <option>rows</option><option>strip</option>
-        </select>
-      </label>
-      <label data-for="price">Chart
-        <select name="chart">
-          <option>none</option><option>7d</option>
-        </select>
-      </label>
-    </form>
-    <p id="cfh-demo-coins-hint" class="cfh-demo-note" data-for="list ticker">Coins: up to 20 slugs, comma-separated, such as <code>bitcoin,ethereum</code>. Leave it empty for the top coins. A coin is the end of its page address on coinfinhub.com: <code>bitcoin</code> in <code>www.coinfinhub.com/price/bitcoin</code>.</p>
-    <div id="cfh-demo-live" class="cfh-demo-live"></div>
-    <p>Paste this where the widget should appear. The script is needed once per page, however many widgets it has. Without JavaScript, the plain link shows instead.</p>
-    <pre class="cfh-demo-code"><code id="cfh-demo-snippet">&lt;script type="module" src="https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@1.0.0/dist/coinfinhub-widget.js" integrity="sha384-0Gz84OlEq4cqspMQh7QgjMoVevKMUt7IOV4rVtWSqE/I/NK2nuSiMDHy5t2Ty/b/" crossorigin="anonymous"&gt;&lt;/script&gt;
-&lt;coinfinhub-price coin="bitcoin" currency="USD" theme="auto"&gt;&lt;a href="https://www.coinfinhub.com/price/bitcoin" target="_blank" rel="nofollow noopener"&gt;CoinFinHub&lt;/a&gt;&lt;/coinfinhub-price&gt;</code></pre>
-    <p class="cfh-demo-actions"><button id="cfh-demo-copy" type="button">Copy the code</button> <span id="cfh-demo-copied" role="status"></span></p>
+    <h2 id="cfh-demo-build">Build your widget</h2>
+    <p class="cfh-demo-note">Every change shows in the preview at once, and the code under it has only what differs from the defaults.</p>
+    <div class="cfh-demo-builder">
+      <form id="cfh-demo-form" class="cfh-demo-form" novalidate>
+        <label class="cfh-demo-field">Widget
+          <select name="widget">
+            <option value="price">Price card</option>
+            <option value="list">List</option>
+            <option value="ticker">Ticker</option>
+            <option value="converter">Converter</option>
+          </select>
+        </label>
+
+        <fieldset class="cfh-demo-field" data-for="list ticker">
+          <legend>Coins</legend>
+          <label class="cfh-demo-check"><input type="radio" name="mode" value="top" checked> Top coins</label>
+          <label class="cfh-demo-check"><input type="radio" name="mode" value="pick"> Coins I choose</label>
+        </fieldset>
+
+        <label class="cfh-demo-field" data-for="list ticker" data-mode="top">How many (1 to 20)
+          <input name="top" type="number" min="1" max="20" value="5" inputmode="numeric">
+        </label>
+
+        <div class="cfh-demo-field" data-mode="pick">
+          <label id="cfh-demo-coin-label" for="cfh-demo-coin">Coin</label>
+          <ul id="cfh-demo-chips" class="cfh-demo-chips" data-for="list ticker" aria-label="Chosen coins"></ul>
+          <div class="cfh-demo-box">
+            <input id="cfh-demo-coin" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="cfh-demo-options" aria-describedby="cfh-demo-coin-hint" autocomplete="off" spellcheck="false" placeholder="Search by name or symbol">
+            <ul id="cfh-demo-options" class="cfh-demo-options" role="listbox" aria-labelledby="cfh-demo-coin-label" hidden></ul>
+          </div>
+          <p id="cfh-demo-coin-hint" class="cfh-demo-hint">Type to search the top coins, or type a coin's slug (the end of its page address, such as <code>bitcoin</code>) and press Enter. Find more coins on <a href="https://www.coinfinhub.com/widgets">coinfinhub.com/widgets</a>.</p>
+          <p id="cfh-demo-coin-error" class="cfh-demo-hint cfh-demo-error" role="status"></p>
+        </div>
+
+        <label class="cfh-demo-field">Currency
+          <select name="currency">
+            <option value="USD">USD — US Dollar</option>
+            <option value="EUR">EUR — Euro</option>
+            <option value="GBP">GBP — British Pound</option>
+            <option value="JPY">JPY — Japanese Yen</option>
+            <option value="CNY">CNY — Chinese Yuan</option>
+            <option value="INR">INR — Indian Rupee</option>
+            <option value="AUD">AUD — Australian Dollar</option>
+            <option value="CHF">CHF — Swiss Franc</option>
+          </select>
+        </label>
+
+        <div class="cfh-demo-field">
+          <label for="cfh-demo-width">Width (px)</label>
+          <input id="cfh-demo-width" name="width" type="number" min="0" step="10" inputmode="numeric" placeholder="Full width" aria-describedby="cfh-demo-width-hint">
+          <p id="cfh-demo-width-hint" class="cfh-demo-hint">Leave empty or 0 for full width. Minimum 200 px (ticker 240 px).</p>
+        </div>
+
+        <label class="cfh-demo-field">Theme
+          <select name="theme">
+            <option value="auto">Auto (the visitor's setting)</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </label>
+
+        <label class="cfh-demo-field" data-for="list">Layout
+          <select name="layout">
+            <option value="rows">Rows</option>
+            <option value="strip">Strip, side by side</option>
+          </select>
+        </label>
+
+        <label class="cfh-demo-field" data-for="price">Chart
+          <select name="chart">
+            <option value="none">None</option>
+            <option value="7d">The last 7 days</option>
+          </select>
+        </label>
+
+        <fieldset class="cfh-demo-field">
+          <legend>Look</legend>
+          <label class="cfh-demo-check"><input type="checkbox" name="transparent" aria-describedby="cfh-demo-transparent-hint"> Transparent background</label>
+          <p id="cfh-demo-transparent-hint" class="cfh-demo-hint">Your page shows through: pick the theme that matches it.</p>
+          <label class="cfh-demo-check"><input type="checkbox" name="outlined" checked> Outlined</label>
+        </fieldset>
+      </form>
+
+      <div class="cfh-demo-result">
+        <h3 class="cfh-demo-label">Preview</h3>
+        <div id="cfh-demo-live" class="cfh-demo-live"></div>
+        <h3 class="cfh-demo-label">Code</h3>
+        <p class="cfh-demo-note">Paste it where the widget should appear. The script is needed once per page, however many widgets it has. Without JavaScript, the plain link shows instead.</p>
+        <pre class="cfh-demo-code"><code id="cfh-demo-snippet">&lt;script type="module" src="https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@1.0.0/dist/coinfinhub-widget.js" integrity="sha384-0Gz84OlEq4cqspMQh7QgjMoVevKMUt7IOV4rVtWSqE/I/NK2nuSiMDHy5t2Ty/b/" crossorigin="anonymous"&gt;&lt;/script&gt;
+&lt;coinfinhub-price coin="bitcoin"&gt;&lt;a href="https://www.coinfinhub.com/price/bitcoin" target="_blank" rel="nofollow noopener"&gt;CoinFinHub&lt;/a&gt;&lt;/coinfinhub-price&gt;</code></pre>
+        <p class="cfh-demo-actions"><button id="cfh-demo-copy" type="button">Copy the code</button> <span id="cfh-demo-copied" role="status"></span></p>
+      </div>
+    </div>
   </section>
 
   <section aria-labelledby="cfh-demo-widths">

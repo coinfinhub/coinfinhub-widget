@@ -9,6 +9,8 @@
   --cfh-demo-accent: #2c3c9e;
   --cfh-demo-on-accent: #ffffff;
   --cfh-demo-gold: #e1af40;
+  --cfh-demo-soft: #eceefa;
+  --cfh-demo-error: #b2375d;
   color-scheme: light;
 }
 
@@ -22,6 +24,8 @@
     --cfh-demo-line: #2f2d37;
     --cfh-demo-accent: #b6b8f7;
     --cfh-demo-on-accent: #131840;
+    --cfh-demo-soft: #26253a;
+    --cfh-demo-error: #f37293;
     color-scheme: dark;
   }
 }
@@ -151,22 +155,66 @@ figcaption {
   background: #121117;
 }
 
-.cfh-demo-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 20px;
-  margin-bottom: 8px;
+.cfh-demo-builder {
+  display: grid;
+  gap: 24px 32px;
+  align-items: start;
 }
 
-.cfh-demo-form label {
+@media (min-width: 880px) {
+  .cfh-demo-builder {
+    grid-template-columns: 340px minmax(0, 1fr);
+  }
+
+  /* The preview stays in view while the form scrolls: a widget only asks for prices while on screen. */
+  .cfh-demo-result {
+    position: sticky;
+    top: 16px;
+  }
+}
+
+.cfh-demo-form {
   display: grid;
-  gap: 4px;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--cfh-demo-line);
+  border-radius: 16px;
+  background: var(--cfh-demo-surface);
+}
+
+.cfh-demo-field {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
   font-size: 0.9rem;
   font-weight: 600;
 }
 
-.cfh-demo-form input,
+.cfh-demo-field legend {
+  padding: 0;
+  margin-bottom: 6px;
+}
+
+.cfh-demo-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  font-weight: 400;
+}
+
+.cfh-demo-check input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--cfh-demo-accent);
+}
+
+.cfh-demo-form input:not([type='checkbox'], [type='radio']),
 .cfh-demo-form select {
+  width: 100%;
   min-height: 40px;
   padding: 6px 10px;
   border: 1px solid var(--cfh-demo-ink-2);
@@ -177,17 +225,133 @@ figcaption {
   font-weight: 400;
 }
 
-.cfh-demo-form input[name='coins'] {
-  min-width: 16rem;
+.cfh-demo-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--cfh-demo-ink-2);
 }
 
-.cfh-demo-form input[name='top'] {
-  width: 5rem;
+.cfh-demo-error {
+  color: var(--cfh-demo-error);
+}
+
+.cfh-demo-error:empty {
+  display: none;
+}
+
+.cfh-demo-box {
+  position: relative;
+}
+
+.cfh-demo-options {
+  position: absolute;
+  z-index: 2;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 18rem;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--cfh-demo-ink-2);
+  border-radius: 10px;
+  background: var(--cfh-demo-surface);
+  box-shadow: 0 8px 24px rgb(19 24 64 / 0.16);
+}
+
+.cfh-demo-options li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.cfh-demo-options li:hover,
+.cfh-demo-options .cfh-demo-active {
+  background: var(--cfh-demo-soft);
+}
+
+.cfh-demo-options [aria-selected='true'] {
+  font-weight: 600;
+}
+
+.cfh-demo-options img,
+.cfh-demo-letter {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+
+.cfh-demo-letter {
+  display: inline-grid;
+  place-items: center;
+  background: var(--cfh-demo-soft);
+  color: var(--cfh-demo-accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.cfh-demo-symbol {
+  font-size: 0.85em;
+  color: var(--cfh-demo-ink-2);
+}
+
+.cfh-demo-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cfh-demo-chips:empty {
+  display: none;
+}
+
+.cfh-demo-chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding-left: 10px;
+  border: 1px solid var(--cfh-demo-line);
+  border-radius: 999px;
+  background: var(--cfh-demo-soft);
+  font-weight: 600;
+}
+
+.cfh-demo-chips button {
+  min-width: 32px;
+  min-height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--cfh-demo-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cfh-demo-result {
+  min-width: 0;
+}
+
+.cfh-demo-label {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
 }
 
 .cfh-demo-live {
-  max-width: 480px;
-  margin: 16px 0;
+  margin: 0 0 24px;
+  padding: 20px;
+  border: 1px dashed var(--cfh-demo-line);
+  border-radius: 16px;
 }
 
 .cfh-demo-code {
