@@ -28,10 +28,6 @@ export class CoinfinhubPrice extends Widget {
     period.setAttribute('aria-hidden', 'true');
   }
 
-  protected units(): string[] {
-    return [(this.getAttribute('coin') ?? '').trim().toLowerCase()].filter(Boolean);
-  }
-
   protected override spark(): boolean {
     return (this.getAttribute('chart') ?? '').trim().toLowerCase() === '7d';
   }

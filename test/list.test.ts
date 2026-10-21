@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import '../src/coinfinhub-widget';
 import {
   coinOf,
@@ -46,16 +46,46 @@ describe('<coinfinhub-list>', () => {
     expect(link(element).href).toBe('https://www.coinfinhub.com/');
   });
 
-  it('shows the top 5 by default, or as many as top says, from 1 to 20', async () => {
+  it('shows the top 5 by default, or as many as top says, from 1 to 20, all cut from one call', async () => {
     const mock = top();
     const api = freshBase();
+    const ranked = (fixture('coins-top').coins as unknown[]).length;
     const five = await mount('coinfinhub-list', { api });
-    await mount('coinfinhub-list', { top: '3', api });
-    await mount('coinfinhub-list', { top: '50', api });
-    await mount('coinfinhub-list', { top: 'many', api });
-    await mount('coinfinhub-list', { top: '0', api });
-    expect(queries(mock)).toEqual(['top=5&currency=USD', 'top=3&currency=USD', 'top=20&currency=USD']);
-    expect(names(five)).toHaveLength((fixture('coins-top').coins as unknown[]).length);
+    const three = await mount('coinfinhub-list', { top: '3', api });
+    const fifty = await mount('coinfinhub-list', { top: '50', api });
+    const many = await mount('coinfinhub-list', { top: 'many', api });
+    const none = await mount('coinfinhub-list', { top: '0', api });
+    expect(queries(mock)).toEqual(['top=20&currency=USD']);
+    expect([five, three, fifty, many, none].map((list) => names(list).length)).toEqual([
+      Math.min(5, ranked),
+      3,
+      Math.min(20, ranked),
+      Math.min(5, ranked),
+      Math.min(5, ranked),
+    ]);
+  });
+
+  it('leaves out slugs that are not well-formed, without asking for them', async () => {
+    const mock = byIds('coins-usd');
+    const element = await mount('coinfinhub-list', { coins: 'bitcoin, bad slug!, top=3, ethereum', api: freshBase() });
+    expect(queries(mock)).toEqual(['ids=bitcoin,ethereum&currency=USD']);
+    expect(names(element)).toEqual(['Bitcoin', 'Ethereum']);
+    const none = await mount('coinfinhub-list', { coins: 'bad slug!', api: freshBase() });
+    expect(statusText(none)).toBe("That isn't a coin name. Use the end of the coin's page address, such as bitcoin.");
+    expect(mock).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves out a coin that came back unreadable, and shows the rest', async () => {
+    stubFetch((url) => {
+      const body = JSON.parse(JSON.stringify(fixture('coins-usd'))) as { coins: { slug: string; display: Record<string, unknown> }[] };
+      const ethereum = body.coins.find((coin) => coin.slug === 'ethereum');
+      if (ethereum) delete ethereum.display.price;
+      const ids = url.searchParams.get('ids')?.split(',') ?? [];
+      return new Response(JSON.stringify({ ...body, coins: body.coins.filter((coin) => ids.includes(coin.slug)) }));
+    });
+    const element = await mount('coinfinhub-list', { coins: 'bitcoin,ethereum,tether', api: freshBase() });
+    expect(state(element)).toBe('data');
+    expect(names(element)).toEqual(['Bitcoin', 'Tether']);
   });
 
   it('takes coins over top, and at most 20 of them', async () => {
@@ -126,7 +156,7 @@ describe('<coinfinhub-ticker>', () => {
   it('shows the top 10 by default, twice: the copy for the loop hidden and inert', async () => {
     const mock = top();
     const element = await mount('coinfinhub-ticker', { api: freshBase() });
-    expect(queries(mock)).toEqual(['top=10&currency=USD']);
+    expect(queries(mock)).toEqual(['top=20&currency=USD']);
     const [run, copy] = parts(element, '.cfh-run');
     expect(run?.getAttribute('aria-hidden')).toBeNull();
     expect(copy?.getAttribute('aria-hidden')).toBe('true');
@@ -144,17 +174,56 @@ describe('<coinfinhub-ticker>', () => {
     expect(part(element, '.cfh-card').getAttribute('aria-label')).toBe('Coin prices');
   });
 
-  it('moves at the same speed whatever the number of coins', async () => {
+  it('repeats the run until half the track covers the view, and moves at the same speed however wide', async () => {
+    // A ResizeObserver the test drives, and sizes the test sets: happy-dom lays nothing out.
+    let resized: () => void = () => undefined;
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: () => void) {
+          resized = callback;
+        }
+        observe(): void {
+          // The test calls resized() itself.
+        }
+      },
+    );
     byIds('coins-usd');
-    const four = await mount('coinfinhub-ticker', { coins: 'bitcoin,ethereum,tether,quietcoin', api: freshBase() });
-    expect(part(four, '.cfh-track').style.animationDuration).toBe('20s');
+    const ticker = await mount('coinfinhub-ticker', { coins: 'bitcoin,ethereum', api: freshBase() });
+    const view = part(ticker, '.cfh-view');
+    const size = (viewWidth: number, runWidth: number): void => {
+      Object.defineProperty(view, 'clientWidth', { configurable: true, value: viewWidth });
+      for (const run of parts(ticker, '.cfh-run')) Object.defineProperty(run, 'offsetWidth', { configurable: true, value: runWidth });
+      resized();
+    };
+    const runs = () => parts(ticker, '.cfh-run');
+    const duration = () => part(ticker, '.cfh-track').style.animationDuration;
+
+    // Two coins, 300 px, in a 1,000 px view: 4 runs make the half that covers it, 8 in all; 1,200 px at 45 px/s.
+    size(1000, 300);
+    expect(runs()).toHaveLength(8);
+    expect(duration()).toBe('27s');
+    for (const copy of runs().slice(1)) {
+      expect(copy.getAttribute('aria-hidden')).toBe('true');
+      expect(copy.inert).toBe(true);
+    }
+    expect(runs()[0]?.getAttribute('aria-hidden')).toBeNull();
+    expect(runs().every((run) => run.querySelectorAll('.cfh-tick').length === 2)).toBe(true);
+    // A price a digit longer keeps the duration, so the strip never jumps.
+    size(1000, 310);
+    expect(duration()).toBe('27s');
+    // A narrower view needs fewer copies, and the same speed: 2 × 600 px in 27 s.
+    size(500, 600);
+    expect(runs()).toHaveLength(2);
+    expect(duration()).toBe('13s');
   });
 
   it('takes coins, and top from 1 to 20', async () => {
     const mock = stubFetch((url) => (url.searchParams.has('top') ? respond('coins-top') : only(['coins-top'], url)));
     const api = freshBase();
     await mount('coinfinhub-ticker', { coins: 'bitcoin,ethereum', api });
-    await mount('coinfinhub-ticker', { top: '4', api });
-    expect(queries(mock)).toEqual(['ids=bitcoin,ethereum&currency=USD', 'top=4&currency=USD']);
+    const four = await mount('coinfinhub-ticker', { top: '4', api });
+    expect(queries(mock)).toEqual(['ids=bitcoin,ethereum&currency=USD', 'top=20&currency=USD']);
+    expect(names(four, '.cfh-run:first-child .cfh-tick')).toHaveLength(4);
   });
 });

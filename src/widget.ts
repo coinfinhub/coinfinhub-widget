@@ -1,9 +1,9 @@
 /**
  * What every CoinFinHub widget shares: the attributes currency and api, the states (loading, data, error),
  * the refresh while on screen, the backoff, the US-dollar fallback, and the footer with its link.
- * Each element fills `main` and says which coins it needs.
+ * Each element fills `main` and says which coins it wants.
  */
-import { BAD_COIN, coinLink, getCoins, SITE, type Coins, type Failure } from './api';
+import { BAD_COIN, coinLink, getCoins, SITE, SLUG, type Coins, type Failure, type Want } from './api';
 import { add, svg } from './dom';
 import { styleSheet } from './styles';
 
@@ -11,10 +11,38 @@ const MINUTE = 60_000;
 const STALE = 10 * MINUTE;
 /** Codes whose message from the server helps the site's author; others get the plain "unavailable". */
 const OWN_MESSAGE = new Set([...BAD_COIN, 'no_coin', 'invalid_currency', 'invalid_query']);
+/** A failure the widget finds itself, before any call. */
+const NO_CALL = { ok: false, retryAfter: null } as const;
 
 /** One IntersectionObserver for every widget, so widgets that come on screen together ask in the same tick. */
 let observer: IntersectionObserver | undefined;
 const watchers = new Map<Element, (visible: boolean) => void>();
+
+/**
+ * The page's refresh clock: every widget showing prices refreshes on its beat (60 s plus one jitter of up
+ * to 10 s for the whole page), so their calls merge. A widget that fails leaves it for its own backoff.
+ */
+const onBeat = new Set<() => void>();
+let clock = 0;
+
+function join(listener: () => void): void {
+  onBeat.add(listener);
+  if (clock) return;
+  const period = MINUTE + Math.random() * 10_000;
+  const beat = (): void => {
+    clock = window.setTimeout(beat, period);
+    for (const each of [...onBeat]) each();
+  };
+  clock = window.setTimeout(beat, period);
+}
+
+function leave(listener: () => void): void {
+  onBeat.delete(listener);
+  if (!onBeat.size) {
+    clearTimeout(clock);
+    clock = 0;
+  }
+}
 
 /** Slugs from an attribute: trimmed, lower case, no repeats, at most 20; empty when there are none. */
 export function slugs(value: string | null): string[] {
@@ -83,13 +111,26 @@ export abstract class Widget extends HTMLElement {
     this.#rate = add(foot, 'span');
   }
 
-  /** The units to ask for: slugs, or one "top=N". None means the coin attribute is missing. */
-  protected abstract units(): string[];
+  /** What to ask for: slugs, or N for the top N. By default the coin attribute's slug; none when it is missing. */
+  protected units(): Want[] {
+    const coin = this.coin();
+    return coin ? [coin] : [];
+  }
   /** Shows the data, or clears it (null: loading or error, with the status line shown by the base). */
   protected abstract paint(data: Coins | null): void;
   /** Whether to ask for the 7-day line. */
   protected spark(): boolean {
     return false;
+  }
+
+  /** The coin attribute, as a slug is written: trimmed, in lower case. */
+  protected coin(): string {
+    return (this.getAttribute('coin') ?? '').trim().toLowerCase();
+  }
+
+  /** The currency attribute, upper case, USD when there is none. */
+  protected currency(): string {
+    return (this.getAttribute('currency') ?? '').trim().toUpperCase() || 'USD';
   }
 
   connectedCallback(): void {
@@ -115,6 +156,9 @@ export abstract class Widget extends HTMLElement {
     this.#live = false;
     watchers.delete(this);
     observer?.unobserve(this);
+    // Off the page clock; back on the page, it refreshes once its prices are a minute old.
+    leave(this.#onBeat);
+    if (this.#due === Infinity) this.#due = this.#receivedAt + MINUTE;
     document.removeEventListener('visibilitychange', this.#onVisibility);
     clearTimeout(this.#timer);
     this.#generation++;
@@ -129,8 +173,13 @@ export abstract class Widget extends HTMLElement {
     this.#tick();
   };
 
+  readonly #onBeat = (): void => {
+    this.#due = 0;
+    this.#tick();
+  };
+
   /** The API base, currency, line and units, as the attributes say now. */
-  #settings(): [string, string, boolean, ...string[]] {
+  #settings(): [string, string, boolean, ...Want[]] {
     let base = SITE;
     const api = this.getAttribute('api');
     if (api) {
@@ -141,8 +190,7 @@ export abstract class Widget extends HTMLElement {
         // Not a URL: the real endpoint.
       }
     }
-    const currency = (this.getAttribute('currency') ?? '').trim().toUpperCase() || 'USD';
-    return [base, currency, this.spark(), ...this.units()];
+    return [base, this.currency(), this.spark(), ...this.units()];
   }
 
   #restart(): void {
@@ -162,26 +210,33 @@ export abstract class Widget extends HTMLElement {
   #tick(): void {
     clearTimeout(this.#timer);
     if (!this.#live || this.#busy || !this.#inView || document.hidden) return;
+    // Due now, at a time of its own (a retry), or on the page clock's next beat (Infinity).
     const wait = this.#due - performance.now();
-    if (wait > 0) {
+    if (wait <= 0) {
+      void this.#load();
+    } else if (wait < Infinity) {
       this.#timer = window.setTimeout(() => {
         this.#tick();
       }, wait);
-    } else {
-      void this.#load();
     }
   }
 
   async #load(): Promise<void> {
     const [base, currency, spark, ...units] = this.#settings();
-    if (!units.length) {
-      this.#render({ ok: false, code: 'no_coin', message: 'Add a coin, for example coin="bitcoin".', retryAfter: null });
+    // Only well-formed slugs are asked for: a list leaves the others out, a single coin says so.
+    const wants = units.filter((unit) => typeof unit === 'number' || SLUG.test(unit));
+    if (!wants.length) {
+      this.#render(
+        units.length
+          ? { ...NO_CALL, code: 'invalid_coin', message: "That isn't a coin name. Use the end of the coin's page address, such as bitcoin." }
+          : { ...NO_CALL, code: 'no_coin', message: 'Add a coin, for example coin="bitcoin".' },
+      );
       return;
     }
     const generation = this.#generation;
     const usd = currency !== 'USD' && performance.now() < this.#usdUntil;
     this.#busy = true;
-    const answer = await getCoins(base, usd ? 'USD' : currency, spark, units);
+    const answer = await getCoins(base, usd ? 'USD' : currency, spark, wants);
     if (generation !== this.#generation) return;
     this.#busy = false;
     const now = performance.now();
@@ -191,9 +246,13 @@ export abstract class Widget extends HTMLElement {
       this.#receivedAt = now;
       this.#failures = 0;
       this.#usdFor = usd ? currency : '';
-      this.#due = now + MINUTE + Math.random() * 10_000;
+      this.#due = Infinity;
+      join(this.#onBeat);
       this.#render(null);
-    } else if (answer.code === 'rate_unavailable' && !usd && currency !== 'USD') {
+      return;
+    }
+    leave(this.#onBeat);
+    if (answer.code === 'rate_unavailable' && !usd && currency !== 'USD') {
       // No rate for this currency: show US-dollar prices, labelled, and ask for the currency again later.
       this.#usdUntil = now + (answer.retryAfter ?? 600) * 1000;
       this.#due = now;
@@ -234,7 +293,7 @@ export abstract class Widget extends HTMLElement {
     this.#note.hidden = !this.#note.textContent;
     this.#rate.textContent = data?.rate ? `· ${data.rate}` : '';
     // A single coin links to its page (home when the coin is wrong); lists and the ticker to the home page.
-    const coin = this.units()[0];
+    const coin = this.coin();
     this.#link.href =
       one && coin && !(failure && BAD_COIN.has(failure.code)) ? (data?.coins[0]?.url ?? coinLink(coin)) : `${SITE}/`;
     this.paint(data);

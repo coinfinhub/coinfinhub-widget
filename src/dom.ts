@@ -70,7 +70,8 @@ export function coinView(parent: Node, tag: 'div' | 'li', className: string): Co
         image.decoding = 'async';
         image.addEventListener('error', () => {
           broken.add(src);
-          logo.textContent = letter;
+          // Only while this image is still the one shown: a late error must not wipe a newer logo.
+          if (logo.firstElementChild === image) logo.textContent = letter;
         });
         image.src = src;
         logo.replaceChildren(image);

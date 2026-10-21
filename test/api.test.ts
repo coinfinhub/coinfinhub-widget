@@ -1,23 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { coinLink, getCoins, safeUrl, SITE, type Answer, type Coin, type Coins, type Failure } from '../src/api';
+import { coinLink, getCoins, safeUrl, SITE, type Answer, type Coin, type Coins, type Failure, type Want } from '../src/api';
 import { coinOf, fixture, freshBase, offline, only, queries, respond, stubFetch } from './helpers';
 
 const PRICE_PAGE = /^\/price\/[^/]+$/;
 const LOGO = /^\/coin-logos\//;
 const messageOf = (name: string): string => (fixture(name).error as { message: string }).message;
 
-async function answerFor(name: string, units = ['bitcoin'], currency = 'USD', spark = false): Promise<Answer> {
+async function answerFor(name: string, units: Want[] = ['bitcoin'], currency = 'USD', spark = false): Promise<Answer> {
   stubFetch(() => respond(name));
   return getCoins(freshBase(), currency, spark, units);
 }
 
-async function coinsFor(name: string, units = ['bitcoin'], currency = 'USD', spark = false): Promise<Coins> {
+async function coinsFor(name: string, units: Want[] = ['bitcoin'], currency = 'USD', spark = false): Promise<Coins> {
   const answer = await answerFor(name, units, currency, spark);
   if (!answer.ok) throw new Error(`expected coins, got ${answer.code}`);
   return answer;
 }
 
-async function failureFor(name: string, units = ['bitcoin']): Promise<Failure> {
+async function failureFor(name: string, units: Want[] = ['bitcoin']): Promise<Failure> {
   const answer = await answerFor(name, units);
   if (answer.ok) throw new Error('expected a failure');
   return answer;
@@ -51,12 +51,12 @@ describe('the request', () => {
     expect(init?.signal).toBeInstanceOf(AbortSignal);
   });
 
-  it('asks for the 7-day line with spark=7d, and for ranked lists with top', async () => {
+  it('asks for the 7-day line with spark=7d, and for every ranked list as the top 20', async () => {
     const mock = stubFetch(() => respond('coins-top'));
     const base = freshBase();
     await getCoins(base, 'USD', true, ['bitcoin']);
-    await getCoins(base, 'EUR', false, ['top=10']);
-    expect(queries(mock)).toEqual(['ids=bitcoin&currency=USD&spark=7d', 'top=10&currency=EUR']);
+    await getCoins(base, 'EUR', false, [10]);
+    expect(queries(mock)).toEqual(['ids=bitcoin&currency=USD&spark=7d', 'top=20&currency=EUR']);
   });
 
   it('encodes what it sends, and survives a lone surrogate', async () => {
@@ -114,25 +114,52 @@ describe('merging', () => {
     expect(queries(mock)).toEqual([`ids=${slugs.slice(0, 20).join(',')}&currency=USD`, `ids=${slugs.slice(20).join(',')}&currency=USD`]);
   });
 
-  it('asks for a malformed slug alone, so it fails only its own widget', async () => {
-    const mock = stubFetch((url) =>
-      (url.searchParams.get('ids') ?? '').includes(' ') ? respond('error-invalid-coin') : only(['coins-top'], url),
-    );
+  it("asks for the ranked list once, on its own, and cuts it to each widget's N", async () => {
+    const mock = stubFetch((url) => (url.searchParams.has('top') ? respond('coins-top') : only(['coins-usd'], url)));
     const base = freshBase();
-    const [good, bad] = await Promise.all([getCoins(base, 'USD', false, ['bitcoin']), getCoins(base, 'USD', false, ['bit coin'])]);
-    expect(queries(mock)).toEqual(['ids=bitcoin&currency=USD', 'ids=bit coin&currency=USD']);
-    expect(good.ok).toBe(true);
-    expect(bad).toMatchObject({ ok: false, code: 'invalid_coin', message: messageOf('error-invalid-coin') });
+    const [ten, three] = await Promise.all([getCoins(base, 'USD', false, [10]), getCoins(base, 'USD', false, [3, 'tether'])]);
+    const one = await getCoins(base, 'USD', false, [1]);
+    expect(queries(mock)).toEqual(['ids=tether&currency=USD', 'top=20&currency=USD']);
+    expect(ten.ok && ten.coins.map((coin) => coin.slug)).toEqual(
+      (fixture('coins-top').coins as { slug: string }[]).map((coin) => coin.slug),
+    );
+    expect(three.ok && three.coins.map((coin) => coin.slug)).toEqual(['bitcoin', 'ethereum', 'bnb', 'tether']);
+    expect(one.ok && one.coins.map((coin) => coin.slug)).toEqual(['bitcoin']);
   });
 
-  it('asks for a ranked list on its own, once for every widget that wants it', async () => {
-    const mock = stubFetch(() => respond('coins-top'));
+  it("answers for each coin of the ranked list within the same floor, so it isn't asked for again", async () => {
+    const mock = stubFetch((url) => (url.searchParams.has('top') ? respond('coins-top') : only(['coins-usd'], url)));
     const base = freshBase();
-    const [one, two] = await Promise.all([getCoins(base, 'USD', false, ['top=10']), getCoins(base, 'USD', false, ['top=10'])]);
-    await getCoins(base, 'USD', false, ['top=5']);
-    expect(queries(mock)).toEqual(['top=10&currency=USD', 'top=5&currency=USD']);
-    expect(one.ok && one.coins).toHaveLength((fixture('coins-top').coins as unknown[]).length);
-    expect(two).toEqual(one);
+    await getCoins(base, 'USD', false, [5]);
+    const answer = await getCoins(base, 'USD', false, ['bnb', 'bitcoin', 'tether']);
+    expect(queries(mock)).toEqual(['top=20&currency=USD', 'ids=tether&currency=USD']);
+    expect(answer.ok && answer.coins.map((coin) => coin.slug)).toEqual(['bnb', 'bitcoin', 'tether']);
+  });
+
+  it('leaves an unreadable coin out of a list, while a widget that asked for it alone fails', async () => {
+    stubFetch(() => {
+      const body = fixture('coins-usd') as { coins: { slug: string; display: Record<string, unknown> }[] };
+      const ethereum = body.coins.find((coin) => coin.slug === 'ethereum');
+      if (ethereum) delete ethereum.display.price;
+      return new Response(JSON.stringify(body));
+    });
+    const base = freshBase();
+    const [list, alone] = await Promise.all([
+      getCoins(base, 'USD', false, ['bitcoin', 'ethereum', 'tether']),
+      getCoins(base, 'USD', false, ['ethereum']),
+    ]);
+    expect(list.ok && list.coins.map((coin) => coin.slug)).toEqual(['bitcoin', 'tether']);
+    expect(!alone.ok && alone.code).toBe('bad_response');
+  });
+
+  it('leaves an unreadable coin out of the ranked list', async () => {
+    stubFetch(() => {
+      const body = fixture('coins-top') as { coins: { display: Record<string, unknown> }[] };
+      delete body.coins[0]?.display.price;
+      return new Response(JSON.stringify(body));
+    });
+    const answer = await getCoins(freshBase(), 'USD', false, [3]);
+    expect(answer.ok && answer.coins.map((coin) => coin.slug)).toEqual(['ethereum', 'bnb', 'xrp']);
   });
 
   it('fails every widget in a call that fails', async () => {
@@ -195,7 +222,6 @@ describe('a 200 answer', () => {
   it('reads the 7-day line', async () => {
     const coin = await firstCoin('coins-spark', ['bitcoin'], true);
     expect(coin.spark).toEqual((coinOf('coins-spark', 'bitcoin') as unknown as { sparkline7d: number[] }).sparkline7d);
-    expect(coin.spark).toHaveLength(56);
   });
 
   it('keeps only numbers from the line, at most 200 of them, and drops a line of one point', async () => {
@@ -272,7 +298,7 @@ describe('a 200 answer', () => {
     const answer = await getCoins(freshBase(), 'USD', false, ['bitcoin']);
     expect(!answer.ok && answer.code).toBe('bad_response');
     stubFetch(() => new Response(JSON.stringify({ coins: [] })));
-    const top = await getCoins(freshBase(), 'USD', false, ['top=5']);
+    const top = await getCoins(freshBase(), 'USD', false, [5]);
     expect(!top.ok && top.code).toBe('bad_response');
   });
 
@@ -358,15 +384,15 @@ describe('the floor', () => {
     expect(queries(mock)).toEqual(['ids=bitcoin&currency=USD', 'ids=ethereum&currency=USD', 'ids=bitcoin&currency=USD']);
   });
 
-  it('holds a ranked list for a minute too', async () => {
+  it('holds the ranked list for a minute too, whatever N each widget wants', async () => {
     const mock = stubFetch(() => respond('coins-top'));
     const base = freshBase();
-    await getCoins(base, 'USD', false, ['top=10']);
+    await getCoins(base, 'USD', false, [10]);
     await vi.advanceTimersByTimeAsync(59_999);
-    await getCoins(base, 'USD', false, ['top=10']);
+    await getCoins(base, 'USD', false, [5]);
     expect(mock).toHaveBeenCalledTimes(1);
     await vi.advanceTimersByTimeAsync(1);
-    await getCoins(base, 'USD', false, ['top=10']);
+    await getCoins(base, 'USD', false, [10]);
     expect(mock).toHaveBeenCalledTimes(2);
   });
 
@@ -382,16 +408,23 @@ describe('the floor', () => {
     expect(mock).toHaveBeenCalledTimes(2);
   });
 
-  it('allows a new try 10 s after no answer at all', async () => {
+  it('holds no failure without a retryAfter, so the next try reaches the server', async () => {
     const mock = offline();
     const base = freshBase();
     await getCoins(base, 'USD', false, ['bitcoin']);
-    await vi.advanceTimersByTimeAsync(9_999);
-    await getCoins(base, 'USD', false, ['bitcoin']);
-    expect(mock).toHaveBeenCalledTimes(1);
-    await vi.advanceTimersByTimeAsync(1);
     await getCoins(base, 'USD', false, ['bitcoin']);
     expect(mock).toHaveBeenCalledTimes(2);
+    const coded = stubFetch(() => respond('error-unknown-code'));
+    await getCoins(base, 'USD', false, ['bitcoin']);
+    await getCoins(base, 'USD', false, ['bitcoin']);
+    expect(coded).toHaveBeenCalledTimes(2);
+  });
+
+  it('shares a failure while it is in flight', async () => {
+    const mock = offline();
+    const base = freshBase();
+    await Promise.all([getCoins(base, 'USD', false, ['bitcoin']), getCoins(base, 'USD', false, ['bitcoin'])]);
+    expect(mock).toHaveBeenCalledTimes(1);
   });
 });
 

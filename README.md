@@ -15,7 +15,7 @@ Four small widgets that show coin prices from [CoinFinHub](https://www.coinfinhu
 Add the script once per page, however many widgets it has:
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@1.0.0/dist/coinfinhub-widget.js" integrity="sha384-0cBfGdSz6+9vpT/pVRJc5qGFuGb34YjW9hG17x0r09T9QUILeilt/YtqBDdyNnW/" crossorigin="anonymous"></script>
+<script type="module" src="https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@1.0.0/dist/coinfinhub-widget.js" integrity="sha384-4uklbnsuTbA/LvGCl94z+2o9CYqaQfP3rUOffi1hkicpTOqx0abExumUnIa7KsFa" crossorigin="anonymous"></script>
 ```
 
 Then put a widget where it should appear. Each one carries a plain link inside it, which shows instead when JavaScript is off or the browser is older than the ones below.
@@ -72,7 +72,7 @@ Change `coin`, `coins`, `top`, `chart`, `currency` or `api` and the widget fetch
 - **The converter** works out either field from the other as the visitor types, from the price CoinFinHub sends. Commas, spaces and an empty field are fine. It is labelled "For display, not a quote".
 - **The footer:** "Powered by CoinFinHub", linking to the coin's page (price card, converter) or CoinFinHub's home page (list, ticker), plus "USD rate derived from ECB data" on prices in other currencies.
 
-Before the first answer a widget says "Loading prices…" (or "price…"). If a refresh fails, it keeps the last prices until they are 10 minutes old; then it says "Prices unavailable right now." A coin CoinFinHub doesn't know is left out of a list, and on a price card or converter it gets a message for you, the site's author. The link stays in every state.
+Before the first answer a widget says "Loading prices…" (or "price…"). If a refresh fails, it keeps the last prices until they are 10 minutes old; then it says "Prices unavailable right now." A coin CoinFinHub doesn't know, a slug that isn't well-formed, or a coin whose answer can't be read is left out of a list; on a price card or converter it gets a message for you, the site's author. The link stays in every state.
 
 ## Currencies
 
@@ -86,7 +86,7 @@ Prices are in US dollars first. CoinFinHub converts them with a dollar rate it d
 - Each widget fills its container from 200 px wide. Set a width on the element, or on what holds it. The layout adapts to its own width (container queries), not the window's.
 - Text follows your page's text size and the visitor's zoom, but never goes below 15 px, even if your page shrinks its root font size. The converter's fields stay at 16 px or more, so phones don't zoom in on them.
 - Each widget brings its own surface, border and colours (CoinFinHub's, light and dark), in Shadow DOM, so your page's styles don't leak in. It uses Inter if your page already loads it, otherwise the system font. There are no custom colours in v1.
-- Only the ticker moves. It stops while the pointer is over it or it has focus, and for visitors who ask for reduced motion it stands still and scrolls sideways by hand.
+- Only the ticker moves, at the same speed whatever its width or number of coins, repeating them as often as needed to fill the strip. It stops while the pointer is over it or it has focus, and for visitors who ask for reduced motion it stands still and scrolls sideways by hand.
 
 ## Accessibility
 
@@ -101,8 +101,8 @@ Prices are in US dollars first. CoinFinHub converts them with a dollar rate it d
 ## How they refresh
 
 - Every 60 seconds plus up to 10 seconds of jitter, and only while the widget is on screen and the tab is visible.
-- Widgets share requests: those that come on screen together ask in one call per currency (and 7-day line), up to 20 coins a call, and each coin is asked for at most once a minute, however many widgets show it and however often their attributes change.
-- After a failed request a widget retries after 10 to 15 seconds, then backs off to 5 minutes, or waits as long as the server asks.
+- Widgets share requests. The widgets on a page refresh together, on one clock, and those that come on screen together ask in one call per currency (and 7-day line), up to 20 coins a call. Every ranked list (`top`) is cut from one call for the top 20, whose coins also answer for widgets that name them. Each coin is asked for at most once a minute, however many widgets show it and however often their attributes change.
+- After a failed request a widget retries after 10 to 15 seconds, then backs off to 5 minutes, or waits as long as the server asks. A retry always reaches the server: failures aren't reused, unless the server asked to wait.
 - Requests are plain GETs with no cookies and no custom headers.
 
 ## Browser support
@@ -178,7 +178,7 @@ This is the endpoint the widgets read, documented for transparency. **It is not 
 | `trading` | `listed`, `low` (little trading) or `stopped` (no trades). |
 | `updatedAt` | When CoinFinHub last read this coin's price. It moves even when the price doesn't. |
 | `url` | The coin's page on CoinFinHub. |
-| `sparkline7d` | Only with `spark=7d`: the last 7 days in `currency`, oldest first, at most 56 points. |
+| `sparkline7d` | Only with `spark=7d`: the last 7 days in `currency`, oldest first. |
 | `display` | Ready-made text: the price and change (with a true minus sign, and lakh grouping for INR), the change's `direction` (`up`, `down` or `flat`; `null` with no change), and a `badge` ("Little trading", "No trades since 1 Oct 2026") or `null`. |
 | `missing` | Slugs asked for that have no page on CoinFinHub. |
 | `rate` | `null` for USD. Otherwise the rate's source and date: the dollar rate is derived from the ECB's euro rates, and `display.rate` says so. |

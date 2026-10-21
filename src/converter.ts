@@ -24,6 +24,8 @@ export class CoinfinhubConverter extends Widget {
   /** The field the visitor typed in last: the other one follows it. */
   #typed: 'amount' | 'value' = 'amount';
   #data: Coins | null = null;
+  /** Shows a currency the picker doesn't list, such as currency="SEK", so picking any listed one is a change. */
+  readonly #unlisted: HTMLOptionElement;
 
   constructor() {
     super('cfh-conv', true);
@@ -45,6 +47,8 @@ export class CoinfinhubConverter extends Widget {
     const pick = add(form, 'label', 'cfh-field');
     add(pick, 'span', 'cfh-lab').textContent = 'Currency';
     this.#currency = add(pick, 'select', 'cfh-in');
+    this.#unlisted = add(this.#currency, 'option');
+    this.#unlisted.disabled = true;
     for (const code of CURRENCIES) add(this.#currency, 'option').textContent = code;
     add(this.main, 'p', 'cfh-fine').textContent = 'For display, not a quote.';
 
@@ -63,14 +67,10 @@ export class CoinfinhubConverter extends Widget {
     });
   }
 
-  protected units(): string[] {
-    return [(this.getAttribute('coin') ?? '').trim().toLowerCase()].filter(Boolean);
-  }
-
   protected paint(data: Coins | null): void {
     this.#data = data;
     const coin = data?.coins[0];
-    const slug = this.units()[0] ?? '';
+    const slug = this.coin();
     if (coin) {
       this.#view.set(coin);
       this.#shown = slug;
@@ -80,8 +80,11 @@ export class CoinfinhubConverter extends Widget {
     this.card.setAttribute('aria-label', coin ? `${coin.name} converter` : 'CoinFinHub converter');
     this.#sum.textContent = coin ? `1 ${coin.symbol || coin.name} = ${coin.price}` : '';
     this.#sum.hidden = !coin;
-    const asked = (this.getAttribute('currency') ?? '').trim().toUpperCase() || 'USD';
-    if (CURRENCIES.includes(asked)) this.#currency.value = asked;
+    const asked = this.currency();
+    const listed = CURRENCIES.includes(asked);
+    this.#unlisted.textContent = listed ? '' : asked;
+    this.#unlisted.hidden = listed;
+    this.#currency.value = asked;
     this.#amountLabel.textContent = coin?.symbol ? `Amount (${coin.symbol})` : 'Amount';
     this.#valueLabel.textContent = `Value (${data?.currency ?? asked})`;
     this.#follow();

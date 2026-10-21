@@ -43,26 +43,30 @@ export interface Failure {
 
 export type Answer = ({ ok: true } & Coins) | Failure;
 
-/** What one coin (a slug) or one ranked list ("top=10") came back as. */
+/** What a widget asks for: a coin by its slug, or a number N for CoinFinHub's top N coins. */
+export type Want = string | number;
+
+/** What one coin, or the ranked list, came back as. */
 type Unit = { ok: true; coins: Coin[]; rate: string | null } | Failure;
 
-/** The site's slug pattern: anything else is asked for alone, so one bad slug can't fail other widgets' calls. */
-const SLUG = /^(?=.{1,100}$)[a-z0-9]+(?:-[a-z0-9]+)*$/;
-/** A ranked list's unit; nothing else is sent as a query of its own. */
-const TOP = /^top=\d+$/;
-/** Codes that mean the coin itself is wrong: a list leaves such a coin out. */
+/** The site's slug pattern. Widgets check it before asking, so one bad slug can't fail other widgets' calls. */
+export const SLUG = /^(?=.{1,100}$)[a-z0-9]+(?:-[a-z0-9]+)*$/;
+/** Codes that mean the coin itself is wrong: the link goes home. */
 export const BAD_COIN = new Set(['invalid_coin', 'unknown_coin']);
+/** Codes about one coin rather than the call: a list leaves that coin out. */
+const ONE_COIN = new Set([...BAD_COIN, 'bad_response']);
 
 const MINUTE = 60_000;
 const TIMEOUT = 15_000;
 const LONGEST = 1_000;
+/** The most coins in one call, and the length of the ranked list every widget slices its top N from. */
 const PER_CALL = 20;
 const POINTS = 200;
 
-/** In-flight and recent answers by "base currency spark unit": the floor that keeps each to one call a minute. */
+/** In-flight and recent answers by "base currency spark slug" ("" for the ranked list): the once-a-minute floor. */
 const cache = new Map<string, { until: number; unit: Promise<Unit> }>();
 /** Units waiting for this tick's calls, by "base query-suffix". */
-const queue = new Map<string, [unit: string, settle: (unit: Unit) => void][]>();
+const queue = new Map<string, [slug: string, settle: (unit: Unit) => void][]>();
 
 /** encodeURIComponent, minus its one throw: a lone surrogate becomes U+FFFD (no slug has one). */
 const encode = (value: string): string => encodeURIComponent(value.replace(/[\uD800-\uDFFF]/g, '�'));
@@ -71,16 +75,18 @@ const encode = (value: string): string => encodeURIComponent(value.replace(/[\uD
 export const coinLink = (slug: string): string => `${SITE}/price/${encode(slug)}`;
 
 /**
- * Coins for one widget: `units` are slugs, or one "top=N". Each unit comes from the cache while it is held,
- * otherwise from a call made at the end of this tick (a microtask) together with every other widget's.
+ * Coins for one widget. Each slug, and the ranked list, comes from the cache while it is held, otherwise
+ * from a call made at the end of this tick (a microtask) together with every other widget's. Every ranked
+ * list is the top 20, asked once and cut to each widget's N.
  */
-export function getCoins(base: string, currency: string, spark: boolean, units: string[]): Promise<Answer> {
+export function getCoins(base: string, currency: string, spark: boolean, wants: Want[]): Promise<Answer> {
   const now = performance.now();
   for (const [key, entry] of cache) if (now >= entry.until) cache.delete(key);
   const group = `${base} &currency=${encode(currency)}${spark ? '&spark=7d' : ''}`;
   return Promise.all(
-    units.map((unit) => {
-      const key = `${group} ${unit}`;
+    wants.map((want) => {
+      const slug = typeof want === 'number' ? '' : want;
+      const key = `${group} ${slug}`;
       let entry = cache.get(key);
       if (!entry) {
         let settle: (unit: Unit) => void = () => undefined;
@@ -92,42 +98,60 @@ export function getCoins(base: string, currency: string, spark: boolean, units: 
         if (!queue.size) queueMicrotask(flush);
         const waiting = queue.get(group) ?? [];
         queue.set(group, waiting);
-        waiting.push([unit, settle]);
+        waiting.push([slug, settle]);
       }
-      return entry.unit;
+      return typeof want === 'number' ? entry.unit.then((unit) => (unit.ok ? { ...unit, coins: unit.coins.slice(0, want) } : unit)) : entry.unit;
     }),
   ).then((results) => compose(results, currency));
 }
 
-/** Makes this tick's calls: well-formed slugs together, 20 at a time; a ranked list or a malformed slug alone. */
+/** Makes this tick's calls: slugs together, 20 at a time, and the ranked list on its own. */
 function flush(): void {
   for (const [group, waiting] of queue) {
-    const slugs = waiting.filter(([unit]) => SLUG.test(unit));
+    const slugs = waiting.filter(([slug]) => slug);
     for (let at = 0; at < slugs.length; at += PER_CALL) void call(group, slugs.slice(at, at + PER_CALL));
-    for (const one of waiting) if (!SLUG.test(one[0])) void call(group, [one]);
+    const ranked = waiting.find(([slug]) => !slug);
+    if (ranked) void call(group, [ranked]);
   }
   queue.clear();
 }
 
 async function call(group: string, units: [string, (unit: Unit) => void][]): Promise<void> {
   const [base = '', suffix = ''] = group.split(' ');
-  const first = units[0]?.[0] ?? '';
-  const query = TOP.test(first) ? first : `ids=${units.map(([unit]) => encode(unit)).join(',')}`;
+  const ranked = !units[0]?.[0];
+  const query = ranked ? `top=${String(PER_CALL)}` : `ids=${units.map(([slug]) => encode(slug)).join(',')}`;
   const answer = await request(`${base}/api/widget/v1/coins?${query}${suffix}`);
-  for (const [unit, settle] of units) {
-    if (!answer.ok) settle(answer);
-    else if (TOP.test(unit)) {
-      const coins = [...answer.coins.values()].filter((coin) => coin !== null);
-      settle(coins.length ? { ok: true, coins, rate: answer.rate } : fail('bad_response'));
-    } else {
-      // Not in the answer: a missing coin, which a list leaves out. In it but unreadable: a bad answer.
-      const coin = answer.coins.get(unit);
-      settle(coin === null ? fail('bad_response') : { ok: true, coins: coin ? [coin] : [], rate: answer.rate });
+  if (!answer.ok) {
+    for (const [, settle] of units) settle(answer);
+    return;
+  }
+  // Unreadable coins are left out of a ranked list; asked for by slug, the coin's own widget says so.
+  const coins = [...answer.coins.values()].filter((coin) => coin !== null);
+  if (ranked) {
+    // Each coin of the ranked list also answers for itself, within the same floor.
+    const now = performance.now();
+    for (const coin of coins) {
+      const key = `${group} ${coin.slug}`;
+      if (!((cache.get(key)?.until ?? 0) > now)) {
+        cache.set(key, { until: now + MINUTE, unit: Promise.resolve({ ok: true, coins: [coin], rate: answer.rate }) });
+      }
     }
+  }
+  for (const [slug, settle] of units) {
+    const coin = answer.coins.get(slug);
+    settle(
+      ranked
+        ? coins.length
+          ? { ok: true, coins, rate: answer.rate }
+          : fail('bad_response')
+        : coin === null
+          ? fail('bad_response')
+          : { ok: true, coins: coin ? [coin] : [], rate: answer.rate },
+    );
   }
 }
 
-/** One widget's answer: the first failure that isn't about a coin wins; otherwise the coins found, in order. */
+/** One widget's answer: a failure of a whole call wins; coins missing or unreadable are left out. */
 function compose(results: Unit[], currency: string): Answer {
   const coins: Coin[] = [];
   let rate: string | null = null;
@@ -136,7 +160,7 @@ function compose(results: Unit[], currency: string): Answer {
     if (result.ok) {
       coins.push(...result.coins);
       rate ??= result.rate;
-    } else if (BAD_COIN.has(result.code)) {
+    } else if (ONE_COIN.has(result.code)) {
       wrong ??= result;
     } else {
       return result;
@@ -145,12 +169,8 @@ function compose(results: Unit[], currency: string): Answer {
   return coins.length ? { ok: true, coins, rate, currency } : (wrong ?? fail('unknown_coin'));
 }
 
-/** How long an answer is reused: a minute, or what the server asks, or 10 s after no answer at all. */
-function hold(unit: Unit): number {
-  if (unit.ok) return MINUTE;
-  if (unit.retryAfter) return unit.retryAfter * 1000;
-  return unit.code === 'network' ? 10_000 : MINUTE;
-}
+/** How long an answer is reused: a minute for coins; a failure only as long as its retryAfter, if it has one. */
+const hold = (unit: Unit): number => (unit.ok ? MINUTE : (unit.retryAfter ?? 0) * 1000);
 
 type Body = { ok: true; coins: Map<string, Coin | null>; rate: string | null } | Failure;
 

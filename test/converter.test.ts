@@ -52,8 +52,10 @@ describe('<coinfinhub-converter>', () => {
       expect(input.inputMode).toBe('decimal');
       expect(input.autocomplete).toBe('off');
     }
-    expect([...select(element).options].map((option) => option.textContent)).toEqual(['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'INR', 'AUD', 'CHF']);
+    const listed = [...select(element).options].filter((option) => !option.hidden);
+    expect(listed.map((option) => option.textContent)).toEqual(['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'INR', 'AUD', 'CHF']);
     expect(select(element).value).toBe('USD');
+    expect(select(element).selectedOptions[0]?.hidden).toBe(false);
     expect(part(element, '.cfh-fine').textContent).toBe('For display, not a quote.');
     expect(link(element).href).toBe('https://www.coinfinhub.com/price/bitcoin');
   });
@@ -106,6 +108,22 @@ describe('<coinfinhub-converter>', () => {
     expect(parts(element, '.cfh-lab')[1]?.textContent).toBe('Value (INR)');
     expect(part(element, '.cfh-sum').textContent).toBe(`1 BTC = ${coinOf('coins-inr', 'bitcoin').display.price}`);
     expect(rateText(element)).toBe('· USD rate derived from ECB data');
+  });
+
+  it('shows a currency it does not list, so picking any listed one is a change', async () => {
+    stubFetch((url) => (url.searchParams.get('currency') === 'SEK' ? respond('error-invalid-currency') : only(['coins-usd'], url)));
+    const element = await converter({ coin: 'bitcoin', currency: 'sek', api: freshBase() });
+    expect(statusText(element)).toBe('Unknown currency. Use one of USD, EUR, GBP, JPY, CNY, INR, AUD or CHF.');
+    const shown = select(element).selectedOptions[0];
+    expect(shown?.textContent).toBe('SEK');
+    expect(shown?.disabled).toBe(true);
+    expect(parts(element, '.cfh-lab')[1]?.textContent).toBe('Value (SEK)');
+    select(element).value = 'USD';
+    select(element).dispatchEvent(new Event('change'));
+    expect(element.getAttribute('currency')).toBe('USD');
+    await settle();
+    expect(value(element).value).toBe('86,091.97');
+    expect(select(element).selectedOptions[0]?.hidden).toBe(false);
   });
 
   it('follows the currency attribute set by the page', async () => {

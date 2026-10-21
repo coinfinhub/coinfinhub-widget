@@ -91,6 +91,25 @@ describe('states', () => {
     expect(link(element).href).toBe('https://www.coinfinhub.com/price/bitcoin');
   });
 
+  it('keeps a newer logo when an older one fails late', async () => {
+    // Versions of its own, so the logo marked as failed here never touches other tests.
+    let version = 101;
+    stubFetch(() => {
+      const body = fixture('coins-usd') as { coins: { logo: string | null }[] };
+      const [bitcoin] = body.coins;
+      if (bitcoin) bitcoin.logo = `https://www.coinfinhub.com/coin-logos/small/bitcoin.png?v=${String(version)}`;
+      return new Response(JSON.stringify(body));
+    });
+    const element = await price({ coin: 'bitcoin', api: freshBase() });
+    const old = part(element, '.cfh-logo img');
+    version = 102;
+    await wait(MINUTE);
+    const current = part(element, '.cfh-logo img');
+    expect(current.getAttribute('src')).toMatch(/v=102$/);
+    old.dispatchEvent(new Event('error'));
+    expect(part(element, '.cfh-logo img')).toBe(current);
+  });
+
   it("shows the symbol's first letter when the logo fails or there is none", async () => {
     stubFetch((url) => only(['coins-top'], url));
     const api = freshBase();
@@ -201,7 +220,8 @@ describe('the 7-day line', () => {
     expect(line.getAttribute('class')).toBe('cfh-spark cfh-up');
     expect(line.getAttribute('role')).toBe('img');
     expect(line.getAttribute('aria-label')).toBe('Price over 7 days, up');
-    expect(part(bitcoin, '.cfh-line').getAttribute('points')?.split(' ')).toHaveLength(56);
+    const week = (coinOf('coins-spark', 'bitcoin') as unknown as { sparkline7d: number[] }).sparkline7d;
+    expect(part(bitcoin, '.cfh-line').getAttribute('points')?.split(' ')).toHaveLength(week.length);
     expect(part(bitcoin, '.cfh-area').getAttribute('points')).toMatch(/^0,32 0,[\d.]+ .* 120,32$/);
     expect(part(bitcoin, '.cfh-chart .cfh-per').textContent).toBe('7d');
     expect(part(ethereum, '.cfh-spark').getAttribute('class')).toBe('cfh-spark cfh-down');
@@ -262,11 +282,19 @@ describe('errors', () => {
     expect(link(missing).href).toBe('https://www.coinfinhub.com/');
   });
 
-  it('passes on the message for a malformed coin or a wrong currency', async () => {
-    always('error-invalid-coin');
-    const bad = await price({ coin: 'Bit Coin', api: freshBase() });
-    expect(statusText(bad)).toBe((fixture('error-invalid-coin').error as { message: string }).message);
-    expect(link(bad).href).toBe('https://www.coinfinhub.com/');
+  it.each(['Bit Coin', 'top=3', 'bitcoin,ethereum', '-bitcoin'])(
+    'says %j is not a coin name, as the endpoint would, without asking',
+    async (coin) => {
+      const mock = always('coins-top');
+      const bad = await price({ coin, api: freshBase() });
+      expect(mock).not.toHaveBeenCalled();
+      expect(state(bad)).toBe('error');
+      expect(statusText(bad)).toBe((fixture('error-invalid-coin').error as { message: string }).message);
+      expect(link(bad).href).toBe('https://www.coinfinhub.com/');
+    },
+  );
+
+  it('passes on the message for a wrong currency', async () => {
     always('error-invalid-currency');
     const currency = await price({ coin: 'bitcoin', currency: 'XYZ', api: freshBase() });
     expect(statusText(currency)).toBe('Unknown currency. Use one of USD, EUR, GBP, JPY, CNY, INR, AUD or CHF.');
@@ -300,6 +328,31 @@ describe('errors', () => {
 });
 
 describe('refresh', () => {
+  it('refreshes every widget on the page on one beat, so their coins go in one call', async () => {
+    const mock = stubFetch((url) => only(['coins-usd'], url));
+    const api = freshBase();
+    await price({ coin: 'bitcoin', api });
+    await wait(20 * SECOND);
+    await price({ coin: 'ethereum', api });
+    // At 60 s ethereum's price is 40 s old: still held, so only bitcoin is asked for. At 120 s both are due.
+    await wait(100 * SECOND);
+    expect(queries(mock)).toEqual([
+      'ids=bitcoin&currency=USD',
+      'ids=ethereum&currency=USD',
+      'ids=bitcoin&currency=USD',
+      'ids=bitcoin,ethereum&currency=USD',
+    ]);
+  });
+
+  it('asks the server again at the first retry after a failure, not a held copy of it', async () => {
+    const mock = inTurn('error-unknown-code', 'coins-usd');
+    const element = await price({ coin: 'bitcoin', api: freshBase() });
+    expect(state(element)).toBe('error');
+    await wait(10 * SECOND);
+    expect(mock).toHaveBeenCalledTimes(2);
+    expect(state(element)).toBe('data');
+  });
+
   it('refreshes every 60 s plus up to 10 s of jitter', async () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const mock = always('coins-usd');
