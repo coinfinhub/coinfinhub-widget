@@ -15,7 +15,7 @@ Four small widgets that show coin prices from [CoinFinHub](https://www.coinfinhu
 Add the script once per page, however many widgets it has:
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@1.0.0/dist/coinfinhub-widget.js" integrity="sha384-0Gz84OlEq4cqspMQh7QgjMoVevKMUt7IOV4rVtWSqE/I/NK2nuSiMDHy5t2Ty/b/" crossorigin="anonymous"></script>
+<script type="module" src="https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@1.0.0/dist/coinfinhub-widget.js" integrity="sha384-m3VKH/WJPCrXGhFacrF9oPmtqTMYP3K8KoSzybL07ZiXnRUNi8aSQtKTymAX7W02" crossorigin="anonymous"></script>
 ```
 
 Then put a widget where it should appear. Each one carries a plain link inside it, which shows instead when JavaScript is off or the browser is older than the ones below.

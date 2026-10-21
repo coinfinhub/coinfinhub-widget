@@ -99,10 +99,11 @@ export abstract class Widget extends HTMLElement {
     this.#note = add(card, 'p', 'cfh-note');
     const foot = add(card, 'p', 'cfh-foot');
     this.#link = add(foot, 'a', 'cfh-link');
-    this.#link.textContent = 'Powered by CoinFinHub';
+    // A quiet credit, "Powered by ▣ CoinFinHub": the words in the muted colour, the name in the ink colour.
+    add(this.#link, 'span', 'cfh-by').textContent = 'Powered by ';
     // CoinFinHub's mark, drawn here (no image request): the navy tile, the white C and F, the gold bar.
     const mark = svg(this.#link, 'svg', { class: 'cfh-mark', viewBox: '0 0 512 512', 'aria-hidden': 'true' });
-    this.#link.prepend(mark);
+    add(this.#link, 'span', 'cfh-name').textContent = 'CoinFinHub';
     svg(mark, 'rect', { width: '512', height: '512', rx: '104', fill: '#161f5a' });
     const strokes = svg(mark, 'g', {
       transform: 'translate(231 258) scale(1.08) translate(-231 -258)',

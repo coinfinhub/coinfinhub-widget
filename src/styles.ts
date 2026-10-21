@@ -355,29 +355,50 @@ const rules = /* css */ `
   font-variant-numeric: tabular-nums;
 }
 
-/* The footer */
+/* The footer: a quiet credit inside the card. A hairline above, the rate note on the left, "Powered by ▣ CoinFinHub"
+   on the right, the name underlined only on hover and focus. */
 .cfh-foot {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  column-gap: 0.35em;
-  font-size: 0.83em;
+  column-gap: 0.75em;
+  margin-top: 0.1em;
+  border-top: 1px solid var(--cfh-line);
+  font-size: 0.78em;
   color: var(--cfh-muted);
+}
+.cfh-foot > span {
+  order: -1;
+}
+.cfh-ticker .cfh-foot {
+  margin-top: 0;
+  border-top: 0;
 }
 .cfh-link {
   display: inline-flex;
   align-items: center;
+  margin-left: auto;
   min-height: 28px;
+  color: var(--cfh-muted);
+  text-decoration: none;
+}
+.cfh-by {
+  white-space: pre;
+}
+.cfh-name {
   font-weight: 600;
-  color: var(--cfh-accent);
+  color: var(--cfh-ink);
+}
+.cfh-link:hover .cfh-name,
+.cfh-link:focus-visible .cfh-name {
   text-decoration: underline;
   text-underline-offset: 0.15em;
 }
 .cfh-mark {
   flex: none;
-  width: 1.2em;
-  height: 1.2em;
-  margin-right: 0.35em;
+  width: 1.1em;
+  height: 1.1em;
+  margin: 0 0.3em 0 0.1em;
 }
 .cfh-link:focus-visible,
 .cfh-view:focus-visible,
