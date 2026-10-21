@@ -2,17 +2,17 @@
 //   http://localhost:4173  the pages: docs/ at /, dist/ at /dist/, the fixtures at /fixtures/
 //                          (the layout the Pages workflow publishes), plus /blank.html and /csp.html
 //   http://127.0.0.1:4174  a mock of the widget's endpoint, answering from test/fixtures (docs/mock.js),
-//                          with /__requests?coin=… to count what the widget asked for
-// Run with `npm run serve`; Playwright starts it by itself.
+//                          with /__calls?ns=… listing the queries the widgets sent under /{ns}/api/…
+// Run with `npm run serve`; Playwright starts it by itself. CFH_PAGES_PORT and CFH_API_PORT change the ports.
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { pick, statusOf } from '../../docs/mock.js';
+import { answer } from '../../docs/mock.js';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-const PAGES = 4173;
-const API = 4174;
+const PAGES = Number(process.env.CFH_PAGES_PORT ?? 4173);
+const API = Number(process.env.CFH_API_PORT ?? 4174);
 const TYPES = {
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
@@ -28,9 +28,9 @@ const MOUNTS = [
 ];
 const BLANK =
   '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Widget test page</title><link rel="icon" href="data:,">' +
-  '<script type="module" src="/dist/coinfinhub-price.js"></script></head><body><main></main></body></html>';
-// A strict policy: no inline styles or scripts, and the widget may only call the mock API.
-const STRICT = `default-src 'none'; script-src 'self'; style-src 'self'; img-src data:; connect-src http://127.0.0.1:${API}`;
+  '<script type="module" src="/dist/coinfinhub-widget.js"></script></head><body><main></main></body></html>';
+// A strict policy: no inline styles or scripts, logos only from CoinFinHub, and calls only to the mock API.
+const STRICT = `default-src 'none'; script-src 'self'; style-src 'self'; img-src data: https://www.coinfinhub.com; connect-src http://127.0.0.1:${API}`;
 
 createServer((request, response) => {
   void (async () => {
@@ -58,34 +58,31 @@ createServer((request, response) => {
   })();
 }).listen(PAGES, 'localhost');
 
-const requests = new Map();
+/** The queries sent so far, by the path segment before /api/ ("" for none). */
+const calls = new Map();
+const load = async (name) => JSON.parse(await readFile(join(ROOT, 'test', 'fixtures', `${name}.json`), 'utf8'));
 
 createServer((request, response) => {
   void (async () => {
     const url = new URL(request.url ?? '/', `http://127.0.0.1:${API}`);
     const cors = { 'access-control-allow-origin': '*', 'cache-control': 'no-store' };
-    if (url.pathname === '/__requests') {
-      const coin = url.searchParams.get('coin') ?? '';
-      const counts = Object.fromEntries(
-        [...requests].filter(([key]) => key.startsWith(`${coin} `)).map(([key, n]) => [key.split(' ')[1], n]),
-      );
-      response.writeHead(200, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify(counts));
+    const json = { ...cors, 'content-type': 'application/json' };
+    if (url.pathname === '/__calls') {
+      response.writeHead(200, json).end(JSON.stringify(calls.get(url.searchParams.get('ns') ?? '') ?? []));
       return;
     }
-    const match = /^\/api\/widget\/v1\/price\/([^/]+)$/.exec(url.pathname);
-    if (request.method !== 'GET' || !match) {
-      response.writeHead(request.method === 'GET' ? 404 : 405, cors).end();
+    if (request.method !== 'GET') {
+      response.writeHead(405, cors).end();
       return;
     }
-    const coin = decodeURIComponent(match[1]);
-    const currency = (url.searchParams.get('currency') ?? 'USD').toUpperCase();
-    const key = `${coin} ${currency}`;
-    const n = (requests.get(key) ?? 0) + 1;
-    requests.set(key, n);
-    const name = pick(coin, currency, n);
-    if (!name) return; // Never answers: the widget stays in its loading state.
-    const body = await readFile(join(ROOT, 'test', 'fixtures', `${name}.json`), 'utf8');
-    response.writeHead(statusOf(JSON.parse(body)), { ...cors, 'content-type': 'application/json' }).end(body);
+    const ns = /^\/([^/]+)\/api\//.exec(url.pathname)?.[1] ?? '';
+    const sent = calls.get(ns) ?? [];
+    calls.set(ns, sent);
+    sent.push(url.search);
+    const n = sent.filter((search) => search === url.search).length;
+    const result = await answer(url, n, load);
+    if (!result) return; // Never answers: the widget stays in its loading state.
+    response.writeHead(result.status, json).end(JSON.stringify(result.body));
   })();
 }).listen(API, '127.0.0.1');
 

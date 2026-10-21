@@ -1,29 +1,109 @@
-// Sample answers for the demo page and the browser tests: which fixture (test/fixtures/*.json) a coin
-// and currency get. `n` counts the requests for that coin and currency so far, starting at 1.
-// The fixtures are illustrative examples of the endpoint's contract, not real prices.
+// A mock of the widget's endpoint, GET /api/widget/v1/coins, for the demo page and the browser tests.
+// It answers from test/fixtures/*.json: illustrative examples of the contract, not real prices.
+//
+// The first path segment, if any, picks a scenario, so a page can show every state at once (widgets with
+// a different api base never share a call):
+//   /hang/…     never answers (the loading state)
+//   /down/…     503 prices_unavailable (the error state)
+//   /flaky/…    answers once, then fails (a failed refresh keeps the last prices)
+//   /limited/…  429 rate_limited once (retryAfter 60), then answers
+//   anything else, such as /t-1234/, answers normally: tests use it to count their own calls.
+// Coins: those in the fixtures (coins-top, coins-usd), among them quietcoin (little trading) and haltcoin
+// (no trades), plus hostile; any other well-formed slug is missing. Currencies: USD and INR from the
+// fixtures, the others worked out with sample rates; CHF has no rate, to show rate_unavailable.
 
-const SAMPLES = {
-  ethereum: 'ok-old',
-  hostile: 'ok-hostile',
-  oldcoin: 'ok-stopped',
-  quietcoin: 'ok-quiet',
-  solana: 'ok-missing-fields',
-  tether: 'ok-stablecoin',
-  tinycoin: 'ok-low',
-};
+const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'INR', 'AUD', 'CHF'];
+const RATES = { EUR: 0.8573, GBP: 0.7461, JPY: 150.31, CNY: 7.1234, AUD: 1.5172 };
+const SLUG = /^(?=.{1,100}$)[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const ROUTE = /^\/(?:([^/]+)\/)?api\/widget\/v1\/coins$/;
+const BANK = ['coins-top', 'coins-usd', 'coins-hostile'];
 
-/** The fixture's name, or null for a request that never answers. Prefixes make scenarios, so tests can use unique coins. */
-export function pick(coin, currency, n) {
-  if (coin.startsWith('hang')) return null;
-  if (coin.startsWith('limited')) return n === 1 ? 'error-rate-limited' : 'ok-usd';
-  if (coin.startsWith('flaky')) return n === 1 ? 'ok-usd' : 'error-prices-unavailable';
-  if (coin.startsWith('down')) return 'error-prices-unavailable';
-  if (coin.startsWith('count') || coin === 'bitcoin') {
-    if (currency === 'USD') return 'ok-usd';
-    return currency === 'INR' ? 'ok-inr' : 'error-rate-unavailable';
-  }
-  return Object.hasOwn(SAMPLES, coin) ? SAMPLES[coin] : 'error-unknown-coin';
+const minus = (text) => text.replace('-', '−');
+const money = (value, currency) =>
+  minus(
+    new Intl.NumberFormat(currency === 'INR' ? 'en-IN' : 'en-US', {
+      style: 'currency',
+      currency,
+      ...(value < 1 ? { maximumSignificantDigits: 4 } : {}),
+    }).format(value),
+  );
+
+/** A made-up 7-day line for coins the fixtures have none for: 56 points ending at the price. */
+function week(slug, price, change) {
+  const seed = [...slug].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const start = price * (1 - ((change ?? 0) * 1.7 + ((seed % 7) - 3)) / 100);
+  return Array.from({ length: 56 }, (_, i) => {
+    const wave = Math.sin(i * 0.8 + seed) * 0.012 + Math.sin(i * 0.21 + seed / 3) * 0.008;
+    return Number((i === 55 ? price : (start + (price - start) * (i / 55)) * (1 + wave)).toPrecision(6));
+  });
 }
 
-/** The HTTP status a fixture is sent with: its error's own status, or 200 for a price. */
-export const statusOf = (body) => body?.error?.status ?? 200;
+const error = (body) => ({ status: body.error.status, body });
+
+/**
+ * The mock's answer to a request: { status, body }, or null for one that never answers.
+ * `n` counts the calls with this path and query so far, starting at 1; `load(name)` gives a fixture's body.
+ */
+export async function answer(url, n, load) {
+  const route = ROUTE.exec(url.pathname);
+  if (!route) return { status: 404, body: { error: { status: 404, code: 'not_found', message: 'Not found.' } } };
+  const scenario = (route[1] ?? '').split('-')[0];
+  if (scenario === 'hang') return null;
+  if (scenario === 'down' || (scenario === 'flaky' && n > 1)) return error(await load('error-prices-unavailable'));
+  if (scenario === 'limited' && n === 1) return error(await load('error-rate-limited'));
+
+  const query = url.searchParams;
+  const repeated = [...new Set(query.keys())].some((key) => query.getAll(key).length > 1);
+  const ids = query.get('ids');
+  const top = query.get('top');
+  const spark = query.get('spark');
+  const currency = (query.get('currency') ?? 'USD').toUpperCase();
+  const slugs = ids === null ? [] : [...new Set(ids.split(','))];
+  const badTop = top !== null && !(/^\d+$/.test(top) && Number(top) >= 1 && Number(top) <= 20);
+  if (repeated || (ids === null) === (top === null) || (spark !== null && spark !== '7d') || slugs.length > 20 || badTop) {
+    return error(await load('error-invalid-query'));
+  }
+  if (!slugs.every((slug) => SLUG.test(slug))) return error(await load('error-invalid-coin'));
+  if (!CURRENCIES.includes(currency)) return error(await load('error-invalid-currency'));
+  const inr = await load('coins-inr');
+  const perUsd = currency === 'USD' ? 1 : currency === 'INR' ? inr.rate.perUsd : RATES[currency];
+  if (!perUsd) return error(await load('error-rate-unavailable'));
+
+  const bank = new Map();
+  for (const name of BANK) for (const coin of (await load(name)).coins) if (!bank.has(coin.slug)) bank.set(coin.slug, coin);
+  const chosen =
+    top !== null
+      ? [...bank.values()].filter((coin) => coin.rank >= 1 && coin.rank <= Number(top)).sort((a, b) => a.rank - b.rank)
+      : slugs.map((slug) => bank.get(slug)).filter(Boolean);
+  const missing = slugs.filter((slug) => !bank.has(slug));
+  if (!chosen.length) return error(await load('error-unknown-coin'));
+
+  const lines = new Map((await load('coins-spark')).coins.map((coin) => [coin.slug, coin.sparkline7d]));
+  const coins = chosen.map((usd) => {
+    const fixed = currency === 'INR' && inr.coins.find((coin) => coin.slug === usd.slug);
+    const price = Number((usd.price * perUsd).toPrecision(8));
+    const copy = (value) => JSON.parse(JSON.stringify(value));
+    const coin = fixed
+      ? copy(fixed)
+      : { ...copy(usd), price, display: { ...usd.display, price: perUsd === 1 ? usd.display.price : money(price, currency) } };
+    const { display } = coin;
+    delete coin.display;
+    delete coin.sparkline7d;
+    if (spark) {
+      const line = lines.get(usd.slug) ?? week(usd.slug, usd.price, usd.change24h);
+      coin.sparkline7d = line.map((value) => (typeof value === 'number' ? Number((value * perUsd).toPrecision(6)) : value));
+    }
+    // display last, as the endpoint orders its fields.
+    return { ...coin, display };
+  });
+  const rate =
+    currency === 'USD'
+      ? null
+      : currency === 'INR'
+        ? inr.rate
+        : { ...inr.rate, perUsd };
+  return {
+    status: 200,
+    body: { currency, coins, missing, rate, display: { rate: rate ? 'USD rate derived from ECB data' : null } },
+  };
+}

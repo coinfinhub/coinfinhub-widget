@@ -3,27 +3,88 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CoinFinHub price widget</title>
-<meta name="description" content="Show a coin's price from CoinFinHub on any website: one script, one element, no dependencies.">
+<title>CoinFinHub widgets</title>
+<meta name="description" content="Show coin prices from CoinFinHub on any website: a price card, a list, a ticker and a converter. One script, no dependencies.">
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="demo.css">
 <script type="module" src="demo.js"></script>
-<script type="module" src="dist/coinfinhub-price.js"></script>
+<script type="module" src="dist/coinfinhub-widget.js"></script>
 </head>
 <body>
 <header class="cfh-demo-head">
   <div class="cfh-demo-wrap">
-    <h1>CoinFinHub price widget</h1>
-    <p class="cfh-demo-lead">Show a coin's price from CoinFinHub on any website: one script, one element, no dependencies, about 5 KB gzipped. Free, MIT-licensed code; prices for display, not for trading.</p>
+    <h1>CoinFinHub widgets</h1>
+    <p class="cfh-demo-lead">Show coin prices from CoinFinHub on any website: a price card, a list, a ticker and a converter. One script for all four, no dependencies, about 8 KB gzipped. Free, MIT-licensed code; prices for display, not for trading.</p>
     <p class="cfh-demo-links"><a href="https://github.com/coinfinhub/coinfinhub-widget">Source on GitHub</a> · <a href="https://www.coinfinhub.com">CoinFinHub</a></p>
+    <p id="cfh-demo-source" class="cfh-demo-note">Checking the live endpoint…</p>
   </div>
 </header>
 
 <main class="cfh-demo-wrap">
-  <section aria-labelledby="cfh-demo-try">
-    <h2 id="cfh-demo-try">Try it</h2>
+  <section aria-labelledby="cfh-demo-gallery">
+    <h2 id="cfh-demo-gallery">The widgets</h2>
+    <p class="cfh-demo-note">Each in its light and dark look. <code>theme="auto"</code> follows the visitor's setting; <code>light</code> and <code>dark</code> fix it.</p>
+
+    <article class="cfh-demo-item" aria-labelledby="cfh-demo-price">
+      <h3 id="cfh-demo-price">Price card <code>&lt;coinfinhub-price&gt;</code></h3>
+      <p>One coin's price and its 24-hour change; with <code>chart="7d"</code>, the last 7 days as a line.</p>
+      <div class="cfh-demo-pair">
+        <div class="cfh-demo-panel cfh-demo-light"><coinfinhub-price coin="bitcoin" chart="7d" theme="light" api="https://sample.invalid"></coinfinhub-price></div>
+        <div class="cfh-demo-panel cfh-demo-dark"><coinfinhub-price coin="bitcoin" chart="7d" theme="dark" api="https://sample.invalid"></coinfinhub-price></div>
+      </div>
+    </article>
+
+    <article class="cfh-demo-item" aria-labelledby="cfh-demo-list">
+      <h3 id="cfh-demo-list">List <code>&lt;coinfinhub-list&gt;</code></h3>
+      <p>The top coins, or the ones you name, in rows.</p>
+      <div class="cfh-demo-pair">
+        <div class="cfh-demo-panel cfh-demo-light"><coinfinhub-list top="5" theme="light" api="https://sample.invalid"></coinfinhub-list></div>
+        <div class="cfh-demo-panel cfh-demo-dark"><coinfinhub-list top="5" theme="dark" api="https://sample.invalid"></coinfinhub-list></div>
+      </div>
+    </article>
+
+    <article class="cfh-demo-item" aria-labelledby="cfh-demo-strip">
+      <h3 id="cfh-demo-strip">Headline strip <code>&lt;coinfinhub-list layout="strip"&gt;</code></h3>
+      <p>The same list as cells side by side, for the top of a page. They wrap on narrow screens.</p>
+      <div class="cfh-demo-stack">
+        <div class="cfh-demo-panel cfh-demo-light"><coinfinhub-list coins="bitcoin,ethereum,bnb,xrp" layout="strip" theme="light" api="https://sample.invalid"></coinfinhub-list></div>
+        <div class="cfh-demo-panel cfh-demo-dark"><coinfinhub-list coins="bitcoin,ethereum,bnb,xrp" layout="strip" theme="dark" api="https://sample.invalid"></coinfinhub-list></div>
+      </div>
+    </article>
+
+    <article class="cfh-demo-item" aria-labelledby="cfh-demo-ticker">
+      <h3 id="cfh-demo-ticker">Ticker <code>&lt;coinfinhub-ticker&gt;</code></h3>
+      <p>A strip that moves sideways in a loop. It stops while the pointer is over it or it has focus, and stands still (scroll it by hand) for visitors who ask for less motion.</p>
+      <div class="cfh-demo-stack">
+        <div class="cfh-demo-panel cfh-demo-light"><coinfinhub-ticker theme="light" api="https://sample.invalid"></coinfinhub-ticker></div>
+        <div class="cfh-demo-panel cfh-demo-dark"><coinfinhub-ticker theme="dark" api="https://sample.invalid"></coinfinhub-ticker></div>
+      </div>
+    </article>
+
+    <article class="cfh-demo-item" aria-labelledby="cfh-demo-converter">
+      <h3 id="cfh-demo-converter">Converter <code>&lt;coinfinhub-converter&gt;</code></h3>
+      <p>An amount of the coin and its value, both editable, in any of the 8 currencies. For display, not a quote.</p>
+      <div class="cfh-demo-pair">
+        <div class="cfh-demo-panel cfh-demo-light"><coinfinhub-converter coin="bitcoin" theme="light" api="https://sample.invalid"></coinfinhub-converter></div>
+        <div class="cfh-demo-panel cfh-demo-dark"><coinfinhub-converter coin="bitcoin" theme="dark" api="https://sample.invalid"></coinfinhub-converter></div>
+      </div>
+    </article>
+  </section>
+
+  <section aria-labelledby="cfh-demo-build">
+    <h2 id="cfh-demo-build">Build your snippet</h2>
     <form id="cfh-demo-form" class="cfh-demo-form">
-      <label>Coin <input name="coin" value="bitcoin" autocomplete="off" spellcheck="false"></label>
+      <label>Widget
+        <select name="widget">
+          <option value="price">Price card</option>
+          <option value="list">List</option>
+          <option value="ticker">Ticker</option>
+          <option value="converter">Converter</option>
+        </select>
+      </label>
+      <label data-for="price converter">Coin <input name="coin" value="bitcoin" autocomplete="off" spellcheck="false"></label>
+      <label data-for="list ticker">Coins <input name="coins" placeholder="the top coins" autocomplete="off" spellcheck="false" aria-describedby="cfh-demo-coins-hint"></label>
+      <label data-for="list ticker">Top <input name="top" type="number" min="1" max="20" value="5"></label>
       <label>Currency
         <select name="currency">
           <option>USD</option><option>EUR</option><option>GBP</option><option>JPY</option>
@@ -35,107 +96,97 @@
           <option>auto</option><option>light</option><option>dark</option>
         </select>
       </label>
+      <label data-for="list">Layout
+        <select name="layout">
+          <option>rows</option><option>strip</option>
+        </select>
+      </label>
+      <label data-for="price">Chart
+        <select name="chart">
+          <option>none</option><option>7d</option>
+        </select>
+      </label>
     </form>
+    <p id="cfh-demo-coins-hint" class="cfh-demo-note" data-for="list ticker">Coins: up to 20 slugs, comma-separated, such as <code>bitcoin,ethereum</code>. Leave it empty for the top coins. A coin is the end of its page address on coinfinhub.com: <code>bitcoin</code> in <code>www.coinfinhub.com/price/bitcoin</code>.</p>
     <div id="cfh-demo-live" class="cfh-demo-live"></div>
-    <p id="cfh-demo-source" class="cfh-demo-note">Checking the live endpoint…</p>
-  </section>
-
-  <section aria-labelledby="cfh-demo-add">
-    <h2 id="cfh-demo-add">Add it to your page</h2>
-    <p>Paste this where the price should appear. The coin is the end of its page address on coinfinhub.com, such as <code>bitcoin</code> in <code>www.coinfinhub.com/price/bitcoin</code>. Without JavaScript, the plain link shows instead.</p>
-    <pre class="cfh-demo-code"><code id="cfh-demo-snippet">&lt;script type="module" src="https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@1.0.0/dist/coinfinhub-price.js" integrity="sha384-FrZCDsGOc2NzaRF5IeeRF9oqaS5W8lGelYTR2b7VxuGwj3etd/2uoFh17ZHtr48D" crossorigin="anonymous"&gt;&lt;/script&gt;
+    <p>Paste this where the widget should appear. The script is needed once per page, however many widgets it has. Without JavaScript, the plain link shows instead.</p>
+    <pre class="cfh-demo-code"><code id="cfh-demo-snippet">&lt;script type="module" src="https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@1.0.0/dist/coinfinhub-widget.js" integrity="sha384-0cBfGdSz6+9vpT/pVRJc5qGFuGb34YjW9hG17x0r09T9QUILeilt/YtqBDdyNnW/" crossorigin="anonymous"&gt;&lt;/script&gt;
 &lt;coinfinhub-price coin="bitcoin" currency="USD" theme="auto"&gt;&lt;a href="https://www.coinfinhub.com/price/bitcoin" target="_blank" rel="nofollow noopener"&gt;CoinFinHub&lt;/a&gt;&lt;/coinfinhub-price&gt;</code></pre>
     <p class="cfh-demo-actions"><button id="cfh-demo-copy" type="button">Copy the code</button> <span id="cfh-demo-copied" role="status"></span></p>
   </section>
 
+  <section aria-labelledby="cfh-demo-widths">
+    <h2 id="cfh-demo-widths">Any width from 200 px</h2>
+    <p class="cfh-demo-note">Each widget fills its container and lays itself out by its own width, not the window's. Set a width on the element, or on what holds it.</p>
+    <div class="cfh-demo-widths">
+      <div class="cfh-demo-w200"><p class="cfh-demo-note">200 px</p><coinfinhub-price coin="ethereum" chart="7d" api="https://sample.invalid"></coinfinhub-price></div>
+      <div class="cfh-demo-w320"><p class="cfh-demo-note">320 px</p><coinfinhub-price coin="ethereum" chart="7d" api="https://sample.invalid"></coinfinhub-price></div>
+      <div class="cfh-demo-w480"><p class="cfh-demo-note">480 px</p><coinfinhub-price coin="ethereum" chart="7d" api="https://sample.invalid"></coinfinhub-price></div>
+    </div>
+    <div class="cfh-demo-widths">
+      <div class="cfh-demo-w200"><p class="cfh-demo-note">200 px</p><coinfinhub-list top="3" api="https://sample.invalid"></coinfinhub-list></div>
+      <div class="cfh-demo-w320"><p class="cfh-demo-note">320 px</p><coinfinhub-list top="3" layout="strip" api="https://sample.invalid"></coinfinhub-list></div>
+      <div class="cfh-demo-w480"><p class="cfh-demo-note">480 px</p><coinfinhub-list top="3" api="https://sample.invalid"></coinfinhub-list></div>
+    </div>
+    <div class="cfh-demo-widths">
+      <div class="cfh-demo-w200"><p class="cfh-demo-note">200 px</p><coinfinhub-converter coin="ethereum" api="https://sample.invalid"></coinfinhub-converter></div>
+      <div class="cfh-demo-w320"><p class="cfh-demo-note">320 px</p><coinfinhub-converter coin="ethereum" api="https://sample.invalid"></coinfinhub-converter></div>
+      <div class="cfh-demo-w480"><p class="cfh-demo-note">480 px</p><coinfinhub-converter coin="ethereum" api="https://sample.invalid"></coinfinhub-converter></div>
+    </div>
+    <div class="cfh-demo-widths">
+      <div class="cfh-demo-w200"><p class="cfh-demo-note">200 px</p><coinfinhub-ticker top="5" api="https://sample.invalid"></coinfinhub-ticker></div>
+      <div class="cfh-demo-w320"><p class="cfh-demo-note">320 px</p><coinfinhub-ticker top="5" api="https://sample.invalid"></coinfinhub-ticker></div>
+      <div class="cfh-demo-w480"><p class="cfh-demo-note">480 px</p><coinfinhub-ticker top="5" api="https://sample.invalid"></coinfinhub-ticker></div>
+    </div>
+  </section>
+
   <section aria-labelledby="cfh-demo-states">
     <h2 id="cfh-demo-states">Every state</h2>
-    <p class="cfh-demo-note">Sample data: the examples from the endpoint's contract, not real prices.</p>
+    <p class="cfh-demo-note">Sample data: the examples from the endpoint's contract, not real prices. The "Powered by CoinFinHub" link stays in every state.</p>
     <div class="cfh-demo-grid">
       <figure>
-        <figcaption><strong>A price</strong> with its 24h change and the Today line. Hover, focus or tap the line for what it means.</figcaption>
-        <coinfinhub-price coin="bitcoin" currency="USD" api="https://sample.invalid"></coinfinhub-price>
+        <figcaption><strong>Loading</strong>, until the first answer.</figcaption>
+        <coinfinhub-price coin="bitcoin" api="https://sample.invalid/hang"></coinfinhub-price>
       </figure>
       <figure>
-        <figcaption><strong>Another currency.</strong> Prices are in dollars first; the rate comes from European Central Bank data.</figcaption>
+        <figcaption><strong>Prices unavailable</strong>, with nothing to show yet.</figcaption>
+        <coinfinhub-list top="5" api="https://sample.invalid/down"></coinfinhub-list>
+      </figure>
+      <figure>
+        <figcaption><strong>A failed refresh</strong> keeps the last price for up to 10 minutes (this one's refreshes fail after a minute).</figcaption>
+        <coinfinhub-price coin="bitcoin" api="https://sample.invalid/flaky"></coinfinhub-price>
+      </figure>
+      <figure>
+        <figcaption><strong>Another currency</strong>, with the source of the dollar rate under it.</figcaption>
         <coinfinhub-price coin="bitcoin" currency="INR" api="https://sample.invalid"></coinfinhub-price>
       </figure>
       <figure>
-        <figcaption><strong>A stablecoin</strong> says whether it holds its peg.</figcaption>
-        <coinfinhub-price coin="tether" api="https://sample.invalid"></coinfinhub-price>
+        <figcaption><strong>No rate for a currency</strong> (the sample has none for CHF): US dollars, labelled, and the currency is tried again later.</figcaption>
+        <coinfinhub-price coin="bitcoin" currency="CHF" api="https://sample.invalid"></coinfinhub-price>
       </figure>
       <figure>
         <figcaption><strong>Little trading:</strong> the price may be far from what you'd pay.</figcaption>
-        <coinfinhub-price coin="tinycoin" api="https://sample.invalid"></coinfinhub-price>
+        <coinfinhub-price coin="quietcoin" api="https://sample.invalid"></coinfinhub-price>
       </figure>
       <figure>
-        <figcaption><strong>No trades:</strong> the last price, with no change and no Today line.</figcaption>
-        <coinfinhub-price coin="oldcoin" api="https://sample.invalid"></coinfinhub-price>
+        <figcaption><strong>No trades:</strong> the last price, with no 24-hour change.</figcaption>
+        <coinfinhub-price coin="haltcoin" api="https://sample.invalid"></coinfinhub-price>
       </figure>
       <figure>
-        <figcaption><strong>A quiet price</strong> that hasn't changed for hours.</figcaption>
-        <coinfinhub-price coin="quietcoin" currency="GBP" api="https://sample.invalid"></coinfinhub-price>
+        <figcaption><strong>A coin CoinFinHub doesn't know</strong> in a list is left out (here <code>not-a-coin</code>).</figcaption>
+        <coinfinhub-list coins="bitcoin,not-a-coin,ethereum" api="https://sample.invalid"></coinfinhub-list>
       </figure>
       <figure>
-        <figcaption><strong>Old prices</strong> carry their age.</figcaption>
-        <coinfinhub-price coin="ethereum" currency="EUR" api="https://sample.invalid"></coinfinhub-price>
+        <figcaption><strong>An unknown coin</strong> on its own says so, for the site's author.</figcaption>
+        <coinfinhub-price coin="not-a-coin" api="https://sample.invalid"></coinfinhub-price>
       </figure>
-      <figure>
-        <figcaption><strong>No rate for a currency:</strong> the dollar price, labelled, and the currency is tried again later.</figcaption>
-        <coinfinhub-price coin="bitcoin" currency="EUR" api="https://sample.invalid"></coinfinhub-price>
-      </figure>
-      <figure>
-        <figcaption><strong>Missing fields:</strong> it shows what it has.</figcaption>
-        <coinfinhub-price coin="solana" api="https://sample.invalid"></coinfinhub-price>
-      </figure>
-      <figure>
-        <figcaption><strong>A failed refresh</strong> keeps the last price (this one's refreshes fail after a minute).</figcaption>
-        <coinfinhub-price coin="flaky" api="https://sample.invalid"></coinfinhub-price>
-      </figure>
-      <figure>
-        <figcaption><strong>Loading</strong>, until the first answer.</figcaption>
-        <coinfinhub-price coin="hang" api="https://sample.invalid"></coinfinhub-price>
-      </figure>
-      <figure>
-        <figcaption><strong>Prices unavailable</strong>, with no price yet. The link always stays.</figcaption>
-        <coinfinhub-price coin="down" api="https://sample.invalid"></coinfinhub-price>
-      </figure>
-      <figure>
-        <figcaption><strong>An unknown coin</strong> says so, for the site's author.</figcaption>
-        <coinfinhub-price coin="no-such-coin" api="https://sample.invalid"></coinfinhub-price>
-      </figure>
-    </div>
-  </section>
-
-  <section aria-labelledby="cfh-demo-themes">
-    <h2 id="cfh-demo-themes">Light and dark</h2>
-    <p class="cfh-demo-note"><code>theme="auto"</code> follows the visitor's setting; <code>light</code> and <code>dark</code> fix it.</p>
-    <div class="cfh-demo-themes">
-      <div class="cfh-demo-panel cfh-demo-light">
-        <coinfinhub-price coin="bitcoin" currency="INR" theme="light" api="https://sample.invalid"></coinfinhub-price>
-        <coinfinhub-price coin="tinycoin" theme="light" api="https://sample.invalid"></coinfinhub-price>
-      </div>
-      <div class="cfh-demo-panel cfh-demo-dark">
-        <coinfinhub-price coin="bitcoin" currency="INR" theme="dark" api="https://sample.invalid"></coinfinhub-price>
-        <coinfinhub-price coin="tinycoin" theme="dark" api="https://sample.invalid"></coinfinhub-price>
-      </div>
-    </div>
-  </section>
-
-  <section aria-labelledby="cfh-demo-widths">
-    <h2 id="cfh-demo-widths">Any width from 200 px</h2>
-    <p class="cfh-demo-note">It fills its container. Set a width on the element, or on what holds it.</p>
-    <div class="cfh-demo-widths">
-      <div class="cfh-demo-w200"><p class="cfh-demo-note">200 px</p><coinfinhub-price coin="bitcoin" currency="INR" api="https://sample.invalid"></coinfinhub-price></div>
-      <div class="cfh-demo-w320"><p class="cfh-demo-note">320 px</p><coinfinhub-price coin="tinycoin" api="https://sample.invalid"></coinfinhub-price></div>
-      <div class="cfh-demo-w480"><p class="cfh-demo-note">480 px</p><coinfinhub-price coin="bitcoin" api="https://sample.invalid"></coinfinhub-price></div>
     </div>
   </section>
 </main>
 
 <footer class="cfh-demo-foot">
   <div class="cfh-demo-wrap">
-    <p>The code is MIT-licensed. The licence doesn't cover the CoinFinHub name or its data: prices are for display, under the widget section of the <a href="https://www.coinfinhub.com/terms">CoinFinHub Terms</a>. Analysis of past prices, not a prediction or financial advice.</p>
+    <p>The code is MIT-licensed. The licence doesn't cover the CoinFinHub name or its data: prices are for display, under the widget section of the <a href="https://www.coinfinhub.com/terms">CoinFinHub Terms</a>, not for trading.</p>
   </div>
 </footer>
 </body>

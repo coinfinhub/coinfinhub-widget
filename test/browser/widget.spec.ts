@@ -1,33 +1,41 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 
 // The pages are served from localhost and the mock API from 127.0.0.1 (servers.mjs): every
-// request the widget makes here is cross-origin, as on other people's sites.
-const API = 'http://127.0.0.1:4174';
+// request the widgets make here is cross-origin, as on other people's sites.
+const API = `http://127.0.0.1:${process.env.CFH_API_PORT ?? '4174'}`;
 
+interface FixtureCoin {
+  slug: string;
+  display: { price: string };
+}
+const coins = (name: string): FixtureCoin[] =>
+  (JSON.parse(readFileSync(new URL(`../fixtures/${name}.json`, import.meta.url), 'utf8')) as { coins: FixtureCoin[] }).coins;
+const priceOf = (name: string, slug: string): string => coins(name).find((coin) => coin.slug === slug)?.display.price ?? '';
+const BITCOIN = priceOf('coins-usd', 'bitcoin');
+const BITCOIN_INR = priceOf('coins-inr', 'bitcoin');
+// A 1×1 PNG, standing in for a logo from www.coinfinhub.com.
+const PIXEL = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+
+/** A path segment of its own under the mock API: its calls are counted apart, and its first word picks a scenario. */
 const unique = (prefix: string): string => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 
-/** How many times the widget asked the mock API for a coin, by currency. */
-async function asked(request: APIRequestContext, coin: string): Promise<Record<string, number>> {
-  const response = await request.get(`${API}/__requests?coin=${coin}`);
-  return (await response.json()) as Record<string, number>;
+/** The queries the widgets sent under one path segment. */
+async function calls(request: APIRequestContext, ns: string): Promise<string[]> {
+  const response = await request.get(`${API}/__calls?ns=${ns}`);
+  return (await response.json()) as string[];
 }
 
-async function addWidget(page: Page, attributes: Record<string, string>, style = ''): Promise<void> {
-  await page.evaluate(
-    ([attrs, css]) => {
-      const widget = document.createElement('coinfinhub-price');
-      for (const [name, value] of Object.entries(attrs)) widget.setAttribute(name, value);
-      if (css) widget.setAttribute('style', css);
+/** Adds widgets in one go, so they come on screen together. */
+async function add(page: Page, widgets: [string, Record<string, string>][]): Promise<void> {
+  await page.evaluate((list) => {
+    for (const [tag, attributes] of list) {
+      const widget = document.createElement(tag);
+      for (const [name, value] of Object.entries(attributes)) widget.setAttribute(name, value);
       document.querySelector('main')?.append(widget);
-    },
-    [attributes, style] as const,
-  );
-}
-
-/** Scrolls every widget into view once: they only ask for a price while on screen. */
-async function showAll(page: Page): Promise<void> {
-  for (const widget of await page.locator('coinfinhub-price').all()) await widget.scrollIntoViewIfNeeded();
+    }
+  }, widgets);
 }
 
 /** Fails the test on any script error or console error on the page. */
@@ -35,8 +43,9 @@ function watchErrors(page: Page): string[] {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => {
-    // Browsers log every 4xx or 5xx answer; the error answers are part of these tests.
-    if (message.type() === 'error' && !message.text().startsWith('Failed to load resource')) errors.push(message.text());
+    // Browsers log every 4xx or 5xx answer and every refused logo; the error answers are part of these tests.
+    const text = message.text();
+    if (message.type() === 'error' && !text.startsWith('Failed to load resource')) errors.push(text);
   });
   page.on('dialog', (dialog) => {
     errors.push(`dialog: ${dialog.message()}`);
@@ -45,42 +54,76 @@ function watchErrors(page: Page): string[] {
   return errors;
 }
 
-test('the demo shows every sample state from another origin, with no errors', async ({ page }) => {
+// No request leaves this machine: the live endpoint and the logos on www.coinfinhub.com are refused,
+// unless a test answers them itself.
+test.beforeEach(async ({ page }) => {
+  await page.route('https://www.coinfinhub.com/**', (route) => route.abort());
+});
+
+/** Scrolls every widget into view once: they only ask for prices while on screen. */
+async function showAll(page: Page): Promise<void> {
+  for (const widget of await page.locator('coinfinhub-price, coinfinhub-list, coinfinhub-ticker, coinfinhub-converter').all()) {
+    await widget.scrollIntoViewIfNeeded();
+  }
+}
+
+test('the demo shows every widget and state from another origin, with no errors', async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto(`/?api=${API}`);
   await expect(page.locator('#cfh-demo-source')).toHaveText(`Every widget on this page asks ${API}.`);
-  await expect(page.locator('#cfh-demo-live .cfh-price')).toHaveText('$86,091.97');
   await showAll(page);
-  const figure = (caption: string) =>
-    page
-      .locator('figure')
-      .filter({ has: page.locator('figcaption', { hasText: caption }) })
-      .locator('coinfinhub-price');
-  await expect(figure('Another currency').locator('.cfh-price')).toHaveText('₹75,86,424.40');
-  await expect(figure('Another currency').locator('.cfh-foot')).toContainText('USD rate derived from ECB data');
-  await expect(figure('Little trading').locator('.cfh-note')).toHaveText("Little trading: the price may be far from what you'd pay");
-  await expect(figure('No rate for a currency').locator('.cfh-note')).toHaveText('Shown in US dollars: no EUR rate right now.');
+  const item = (heading: string) => page.locator('article').filter({ has: page.getByRole('heading', { name: heading }) });
+  await expect(item('Price card').locator('.cfh-price')).toHaveText([BITCOIN, BITCOIN]);
+  await expect(item('Price card').locator('.cfh-spark').first()).toBeVisible();
+  await expect(item('List').first().locator('coinfinhub-list').first().locator('.cfh-item')).toHaveCount(5);
+  await expect(item('Headline strip').locator('coinfinhub-list').first().locator('.cfh-item')).toHaveCount(4);
+  await expect(item('Ticker').locator('coinfinhub-ticker').first().locator('.cfh-run').first().locator('.cfh-tick')).toHaveCount(5);
+  await expect(item('Converter').locator('.cfh-sum').first()).toHaveText(`1 BTC = ${BITCOIN}`);
+  const figure = (caption: string) => page.locator('figure').filter({ has: page.locator('figcaption', { hasText: caption }) });
   await expect(figure('Loading').locator('.cfh-status')).toHaveText('Loading price…');
-  await expect(figure('Prices unavailable').locator('.cfh-status')).toHaveText('Price unavailable right now.');
-  await expect(figure('An unknown coin').locator('.cfh-status')).toHaveText('CoinFinHub has no page for this coin.');
+  await expect(figure('Prices unavailable').locator('.cfh-status')).toHaveText('Prices unavailable right now.');
+  await expect(figure('A failed refresh').locator('.cfh-price')).toHaveText(BITCOIN);
+  await expect(figure('Another currency').locator('.cfh-price')).toHaveText(BITCOIN_INR);
+  await expect(figure('Another currency').locator('.cfh-foot')).toContainText('USD rate derived from ECB data');
+  await expect(figure('No rate for a currency').locator('.cfh-note')).toHaveText('Shown in US dollars: no CHF rate right now.');
+  await expect(figure('Little trading').locator('.cfh-badge')).toHaveText('Little trading');
+  await expect(figure('No trades').locator('.cfh-badge')).toContainText('No trades since');
+  await expect(figure('No trades').locator('.cfh-chg')).toBeHidden();
+  await expect(figure("A coin CoinFinHub doesn't know").locator('.cfh-name')).toHaveText(['Bitcoin', 'Ethereum']);
+  await expect(figure('An unknown coin on its own').locator('.cfh-status')).toHaveText('CoinFinHub has no page for this coin.');
   expect(errors).toEqual([]);
 });
 
-test('the demo falls back to sample data when the live endpoint does not answer', async ({ page }) => {
-  await page.route('https://www.coinfinhub.com/**', (route) => route.abort());
+test('the demo falls back to sample data, and its builder writes the snippet', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#cfh-demo-source')).toContainText('sample data');
-  await expect(page.locator('#cfh-demo-live .cfh-price')).toHaveText('$86,091.97');
+  const preview = page.locator('#cfh-demo-live');
+  const snippet = page.locator('#cfh-demo-snippet');
+  // Widgets only ask while on screen.
+  await preview.scrollIntoViewIfNeeded();
+  await expect(preview.locator('.cfh-price')).toHaveText(BITCOIN);
+  await expect(snippet).toContainText('integrity="sha384-');
   await page.locator('select[name=currency]').selectOption('INR');
-  await expect(page.locator('#cfh-demo-live .cfh-price')).toHaveText('₹75,86,424.40');
-  await expect(page.locator('#cfh-demo-snippet')).toContainText('<coinfinhub-price coin="bitcoin" currency="INR" theme="auto">');
+  await page.locator('select[name=chart]').selectOption('7d');
+  await expect(preview.locator('.cfh-price')).toHaveText(BITCOIN_INR);
+  await expect(snippet).toContainText('<coinfinhub-price coin="bitcoin" chart="7d" currency="INR" theme="auto"><a href="https://www.coinfinhub.com/price/bitcoin"');
+  await page.locator('select[name=widget]').selectOption('list');
+  await expect(page.locator('input[name=coin]')).toBeHidden();
+  await page.locator('select[name=layout]').selectOption('strip');
+  await expect(preview.locator('coinfinhub-list .cfh-item')).toHaveCount(5);
+  await expect(snippet).toContainText('<coinfinhub-list top="5" layout="strip" currency="INR" theme="auto"><a href="https://www.coinfinhub.com/"');
+  await page.locator('input[name=coins]').fill('Ethereum, bitcoin');
+  await expect(snippet).toContainText('<coinfinhub-list coins="ethereum,bitcoin" layout="strip"');
+  await page.locator('select[name=widget]').selectOption('ticker');
+  await page.locator('input[name=coins]').fill('');
+  await expect(snippet).toContainText('<coinfinhub-ticker top="10" currency="INR" theme="auto">');
 });
 
 test('has no accessibility violations (axe), in light and dark', async ({ page }) => {
   await page.goto(`/?api=${API}`);
-  await expect(page.locator('#cfh-demo-live .cfh-price')).toBeVisible();
   await showAll(page);
-  await expect(page.locator('.cfh-demo-grid .cfh-price').first()).toBeVisible();
+  await expect(page.locator('#cfh-demo-live .cfh-price')).toBeVisible();
+  await expect(page.locator('.cfh-demo-grid .cfh-badge', { hasText: 'Little trading' })).toBeVisible();
   for (const colorScheme of ['light', 'dark'] as const) {
     await page.emulateMedia({ colorScheme });
     const results = await new AxeBuilder({ page }).analyze();
@@ -88,33 +131,45 @@ test('has no accessibility violations (axe), in light and dark', async ({ page }
   }
 });
 
+test('widgets on screen together share one call, whatever they show', async ({ page, request }) => {
+  await page.goto('/blank.html');
+  const ns = unique('t');
+  const api = `${API}/${ns}`;
+  await add(page, [
+    ['coinfinhub-price', { coin: 'bitcoin', api }],
+    ['coinfinhub-price', { coin: 'ethereum', api }],
+    ['coinfinhub-list', { coins: 'bitcoin,tether', api }],
+    ['coinfinhub-converter', { coin: 'bitcoin', api }],
+    ['coinfinhub-ticker', { api }],
+    ['coinfinhub-price', { coin: 'bitcoin', currency: 'INR', api }],
+  ]);
+  await expect(page.locator('.cfh-price').first()).toHaveText(BITCOIN);
+  await expect(page.locator('coinfinhub-list .cfh-item')).toHaveCount(2);
+  await expect(page.locator('coinfinhub-ticker .cfh-run').first().locator('.cfh-tick')).toHaveCount(5);
+  expect((await calls(request, ns)).sort()).toEqual(
+    ['?ids=bitcoin,ethereum,tether&currency=USD', '?top=10&currency=USD', '?ids=bitcoin&currency=INR'].sort(),
+  );
+});
+
 test('waits as retryAfter says', async ({ page, request }) => {
   await page.clock.install();
   await page.goto('/blank.html');
-  const coin = unique('limited');
-  await addWidget(page, { coin, api: API });
+  const ns = unique('limited');
+  await add(page, [['coinfinhub-price', { coin: 'bitcoin', api: `${API}/${ns}` }]]);
   await expect(page.locator('coinfinhub-price .cfh-status')).toHaveText('Price unavailable right now.');
   await page.clock.runFor(55_000);
-  expect(await asked(request, coin)).toEqual({ USD: 1 });
+  expect(await calls(request, ns)).toHaveLength(1);
   await page.clock.runFor(6_000);
-  await expect(page.locator('coinfinhub-price .cfh-price')).toHaveText('$86,091.97');
-  expect(await asked(request, coin)).toEqual({ USD: 2 });
-});
-
-test('widgets showing the same coin and currency share one request', async ({ page, request }) => {
-  await page.goto('/blank.html');
-  const coin = unique('count');
-  for (const currency of ['USD', 'USD', 'usd', 'INR']) await addWidget(page, { coin, currency, api: API });
-  await expect(page.locator('coinfinhub-price .cfh-price')).toHaveCount(4);
-  expect(await asked(request, coin)).toEqual({ USD: 1, INR: 1 });
+  await expect(page.locator('coinfinhub-price .cfh-price')).toHaveText(BITCOIN);
+  expect(await calls(request, ns)).toHaveLength(2);
 });
 
 test('pauses while the tab is hidden', async ({ page, request }) => {
   await page.clock.install();
   await page.goto('/blank.html');
-  const coin = unique('count');
-  await addWidget(page, { coin, api: API });
-  await expect(page.locator('coinfinhub-price .cfh-price')).toBeVisible();
+  const ns = unique('t');
+  await add(page, [['coinfinhub-list', { top: '3', api: `${API}/${ns}` }]]);
+  await expect(page.locator('coinfinhub-list .cfh-item').first()).toBeVisible();
   const setHidden = (hidden: boolean) =>
     page.evaluate((value) => {
       Object.defineProperty(document, 'hidden', { configurable: true, get: () => value });
@@ -122,52 +177,65 @@ test('pauses while the tab is hidden', async ({ page, request }) => {
     }, hidden);
   await setHidden(true);
   await page.clock.runFor(5 * 60_000);
-  expect(await asked(request, coin)).toEqual({ USD: 1 });
+  expect(await calls(request, ns)).toHaveLength(1);
   await setHidden(false);
-  await expect.poll(() => asked(request, coin)).toEqual({ USD: 2 });
+  await expect.poll(async () => (await calls(request, ns)).length).toBe(2);
 });
 
 test("follows the host's text size, but never below 15 px", async ({ page }) => {
   await page.goto('/blank.html');
   await page.addStyleTag({ content: 'html { font-size: 10px } main { font-size: 1rem } .big { font-size: 20px }' });
-  await addWidget(page, { coin: 'bitcoin', api: API });
-  await page.evaluate(() => {
+  await add(page, [['coinfinhub-list', { coins: 'bitcoin', api: API }]]);
+  await page.evaluate((api) => {
     const big = document.createElement('div');
     big.className = 'big';
-    big.append(document.createElement('coinfinhub-price'));
-    big.firstElementChild?.setAttribute('coin', 'bitcoin');
-    big.firstElementChild?.setAttribute('api', 'http://127.0.0.1:4174');
+    const widget = document.createElement('coinfinhub-converter');
+    widget.setAttribute('coin', 'bitcoin');
+    widget.setAttribute('api', api);
+    big.append(widget);
     document.querySelector('main')?.append(big);
-  });
-  const size = (index: number) =>
-    page.locator('coinfinhub-price').nth(index).evaluate((widget) => getComputedStyle(widget).fontSize);
-  expect(await size(0)).toBe('15px');
-  expect(await size(1)).toBe('20px');
+  }, API);
+  const size = (selector: string) => page.locator(selector).evaluate((widget) => getComputedStyle(widget).fontSize);
+  expect(await size('coinfinhub-list')).toBe('15px');
+  expect(await size('coinfinhub-converter')).toBe('20px');
 });
 
-test('fits 200 px without sideways overflow, and the link target is at least 28 px tall', async ({ page }) => {
+test('every widget fits 200 px without sideways overflow, with link targets at least 28 px tall', async ({ page }) => {
   await page.goto('/blank.html');
-  await addWidget(page, { coin: 'bitcoin', currency: 'INR', api: API }, 'width: 200px');
-  const card = page.locator('coinfinhub-price .cfh-card');
-  await expect(card.locator('.cfh-price')).toHaveText('₹75,86,424.40');
-  const fits = await card.evaluate((node) => node.scrollWidth <= node.clientWidth);
-  expect(fits).toBe(true);
-  const box = await card.locator('.cfh-link').boundingBox();
-  expect(box?.height).toBeGreaterThanOrEqual(28);
+  const api = API;
+  const style = 'width: 200px';
+  await add(page, [
+    ['coinfinhub-price', { coin: 'bitcoin', currency: 'INR', chart: '7d', api, style }],
+    ['coinfinhub-list', { top: '5', api, style }],
+    ['coinfinhub-list', { top: '5', layout: 'strip', api, style }],
+    ['coinfinhub-ticker', { api, style }],
+    ['coinfinhub-converter', { coin: 'bitcoin', currency: 'INR', api, style }],
+  ]);
+  await expect(page.locator('coinfinhub-price .cfh-price')).toHaveText(BITCOIN_INR);
+  await expect(page.locator('coinfinhub-converter .cfh-sum')).toBeVisible();
+  await expect(page.locator('coinfinhub-ticker .cfh-tick').first()).toBeVisible();
+  for (const card of await page.locator('.cfh-card').all()) {
+    expect(await card.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
+    const box = await card.locator('.cfh-link').boundingBox();
+    expect(box?.height).toBeGreaterThanOrEqual(28);
+  }
+  for (const field of await page.locator('coinfinhub-converter .cfh-in').all()) {
+    expect((await field.boundingBox())?.height).toBeGreaterThanOrEqual(32);
+  }
 });
 
 test('switches theme with the attribute and the colour scheme', async ({ page }) => {
   await page.goto('/blank.html');
-  await addWidget(page, { coin: 'bitcoin', api: API, theme: 'light' });
-  const card = page.locator('coinfinhub-price .cfh-card');
-  const background = () => card.evaluate((node) => getComputedStyle(node).backgroundColor);
+  await add(page, [['coinfinhub-ticker', { api: API, theme: 'light' }]]);
+  const widget = page.locator('coinfinhub-ticker');
+  const background = () => widget.locator('.cfh-card').evaluate((node) => getComputedStyle(node).backgroundColor);
   expect(await background()).toBe('rgb(255, 255, 255)');
-  await page.locator('coinfinhub-price').evaluate((widget) => {
-    widget.setAttribute('theme', 'dark');
+  await widget.evaluate((node) => {
+    node.setAttribute('theme', 'dark');
   });
   expect(await background()).toBe('rgb(26, 25, 32)');
-  await page.locator('coinfinhub-price').evaluate((widget) => {
-    widget.setAttribute('theme', 'auto');
+  await widget.evaluate((node) => {
+    node.setAttribute('theme', 'auto');
   });
   await page.emulateMedia({ colorScheme: 'dark' });
   expect(await background()).toBe('rgb(26, 25, 32)');
@@ -183,36 +251,88 @@ test("works under a strict CSP with no 'unsafe-inline'", async ({ page }) => {
       console.error(`CSP: ${event.violatedDirective}`);
     });
   });
-  await addWidget(page, { coin: 'bitcoin', api: API, theme: 'light' });
-  await expect(page.locator('coinfinhub-price .cfh-price')).toHaveText('$86,091.97');
+  await add(page, [
+    ['coinfinhub-price', { coin: 'bitcoin', chart: '7d', api: API, theme: 'light' }],
+    ['coinfinhub-ticker', { api: API }],
+    ['coinfinhub-converter', { coin: 'bitcoin', api: API }],
+  ]);
+  await expect(page.locator('coinfinhub-price .cfh-price')).toHaveText(BITCOIN);
+  await expect(page.locator('coinfinhub-ticker .cfh-tick').first()).toBeVisible();
+  await expect(page.locator('coinfinhub-converter .cfh-sum')).toBeVisible();
   const background = await page.locator('coinfinhub-price .cfh-card').evaluate((node) => getComputedStyle(node).backgroundColor);
   expect(background).toBe('rgb(255, 255, 255)');
+  expect(await page.locator('coinfinhub-ticker .cfh-track').evaluate((node) => getComputedStyle(node).animationName)).toBe('cfh-roll');
   expect(errors).toEqual([]);
 });
 
-test('the Today tip opens on focus and hover, and Escape closes it', async ({ page }) => {
+test('the ticker loops, pauses on hover and focus, and stands still with reduced motion', async ({ page }) => {
   await page.goto('/blank.html');
-  await addWidget(page, { coin: 'bitcoin', api: API });
-  const line = page.locator('coinfinhub-price .cfh-ctx');
-  const tip = line.locator('.cfh-tip');
-  await expect(line).toBeVisible();
-  await expect(tip).toBeHidden();
-  await line.focus();
-  await expect(tip).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(tip).toBeHidden();
-  await line.blur();
-  await line.hover();
-  await expect(tip).toBeVisible();
+  await add(page, [['coinfinhub-ticker', { api: API, style: 'width: 400px' }]]);
+  const ticker = page.locator('coinfinhub-ticker');
+  const track = ticker.locator('.cfh-track');
+  const copy = ticker.locator('.cfh-run').nth(1);
+  await expect(ticker.locator('.cfh-tick').first()).toBeVisible();
+  const motion = () => track.evaluate((node) => [getComputedStyle(node).animationName, getComputedStyle(node).animationPlayState]);
+  expect(await motion()).toEqual(['cfh-roll', 'running']);
+  await expect(copy).toHaveAttribute('aria-hidden', 'true');
+  expect(await copy.evaluate((node) => (node as HTMLElement).inert)).toBe(true);
+  await ticker.locator('.cfh-view').hover();
+  expect(await motion()).toEqual(['cfh-roll', 'paused']);
+  await page.mouse.move(0, 0);
+  await ticker.locator('.cfh-view').focus();
+  expect(await motion()).toEqual(['cfh-roll', 'paused']);
+  await ticker.locator('.cfh-view').blur();
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  expect((await motion())[0]).toBe('none');
+  await expect(copy).toBeHidden();
+  const view = ticker.locator('.cfh-view');
+  expect(await view.evaluate((node) => getComputedStyle(node).overflowX)).toBe('auto');
+  expect(await view.evaluate((node) => node.scrollWidth > node.clientWidth)).toBe(true);
+  await view.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(() => view.evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
+});
+
+test('the converter works out either field as the visitor types, and changes currency', async ({ page }) => {
+  await page.goto('/blank.html');
+  await add(page, [['coinfinhub-converter', { coin: 'bitcoin', api: API }]]);
+  const converter = page.locator('coinfinhub-converter');
+  const amount = converter.getByLabel('Amount (BTC)');
+  const value = converter.getByLabel('Value (USD)');
+  await expect(value).toHaveValue(BITCOIN.slice(1));
+  await amount.fill('2');
+  await expect(value).not.toHaveValue(BITCOIN.slice(1));
+  await value.fill('');
+  await expect(amount).toHaveValue('');
+  await amount.fill('1');
+  // Focus stays on the picker while the price in the new currency loads.
+  await converter.getByLabel('Currency').focus();
+  await converter.getByLabel('Currency').selectOption('INR');
+  await expect(converter.getByLabel('Value (INR)')).toHaveValue(BITCOIN_INR.slice(1));
+  await expect(converter.getByLabel('Currency')).toBeFocused();
+  await expect(converter).toHaveAttribute('currency', 'INR');
+});
+
+test('shows logos from CoinFinHub, and the letter when one fails', async ({ page }) => {
+  await page.route('https://www.coinfinhub.com/coin-logos/**', (route) =>
+    route.request().url().includes('/bitcoin.') ? route.fulfill({ contentType: 'image/png', body: PIXEL }) : route.abort(),
+  );
+  await page.goto('/blank.html');
+  await add(page, [['coinfinhub-list', { coins: 'bitcoin,ethereum', api: API }]]);
+  const logos = page.locator('coinfinhub-list .cfh-logo');
+  await expect(logos.nth(0).locator('img')).toHaveJSProperty('complete', true);
+  expect(await logos.nth(0).locator('img').evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBe(1);
+  await expect(logos.nth(1)).toHaveText('E');
 });
 
 test('shows hostile text as text and keeps the link on CoinFinHub', async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto('/blank.html');
-  await addWidget(page, { coin: 'hostile', api: API });
+  await add(page, [['coinfinhub-price', { coin: 'hostile', chart: '7d', api: API }]]);
   const widget = page.locator('coinfinhub-price');
   await expect(widget.locator('.cfh-name')).toHaveText('<img src=x onerror=alert(1)>');
-  expect(await widget.locator('img, script, svg, style').count()).toBe(0);
+  expect(await widget.locator('img, script, style').count()).toBe(0);
   const link = widget.locator('.cfh-link');
   await expect(link).toHaveAttribute('href', 'https://www.coinfinhub.com/price/hostile');
   await expect(link).toHaveAttribute('target', '_blank');
@@ -220,11 +340,11 @@ test('shows hostile text as text and keeps the link on CoinFinHub', async ({ pag
   expect(errors).toEqual([]);
 });
 
-test('is defined once when the script loads twice', async ({ page }) => {
+test('defines each widget once when the script loads twice', async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto('/blank.html');
-  await page.addScriptTag({ url: '/dist/coinfinhub-price.js?again', type: 'module' });
-  await addWidget(page, { coin: 'bitcoin', api: API });
-  await expect(page.locator('coinfinhub-price .cfh-price')).toHaveText('$86,091.97');
+  await page.addScriptTag({ url: '/dist/coinfinhub-widget.js?again', type: 'module' });
+  await add(page, [['coinfinhub-price', { coin: 'bitcoin', api: API }]]);
+  await expect(page.locator('coinfinhub-price .cfh-price')).toHaveText(BITCOIN);
   expect(errors).toEqual([]);
 });
