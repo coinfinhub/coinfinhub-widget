@@ -8,7 +8,7 @@ Four small widgets that show coin prices from [CoinFinHub](https://www.coinfinhu
 
 | Light | Dark |
 |---|---|
-| *Screenshot to come with v1.0.0* | *Screenshot to come with v1.0.0* |
+| ![The four CoinFinHub widgets in the light theme: a ticker, a price card with its 7-day line, a converter and a coin list](docs/img/widgets-light.png) | ![The same four widgets in the dark theme](docs/img/widgets-dark.png) |
 
 ## Quick start (30 seconds)
 
