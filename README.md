@@ -163,7 +163,7 @@ The widgets read their own endpoint on widgets.coinfinhub.com. It belongs to the
 
 ## Make it yours
 
-The code is open source under the MIT licence. Use the widgets as they are, or fork this repo and change anything: the layout, the colours, the fonts, what each widget shows. The one condition for showing CoinFinHub's prices (the [CoinFinHub Terms](https://www.coinfinhub.com/terms#cfh-doc-widget)): a clear, visible "Powered by CoinFinHub" link beside them. A fork still asks `widgets.coinfinhub.com` for the prices, within the same rate limits; `npm run build` makes your own `dist/coinfinhub-widget.js` (see [Development](#development)).
+The code is open source under the MIT licence (keep its notice in your copy). Use the widgets as they are, or fork this repo and adapt them to your site: the layout, the colours, the fonts, what each widget shows. Showing CoinFinHub's prices comes with the [CoinFinHub Terms](https://www.coinfinhub.com/terms#cfh-doc-widget): a clear, visible "Powered by CoinFinHub" link beside them, and the prices for display only (see [Data terms](#data-terms)). A fork still asks `widgets.coinfinhub.com` for the prices, within the same rate limits; `npm run build` makes your own `dist/coinfinhub-widget.js` (see [Development](#development)).
 
 ## Hosting the script yourself
 
