@@ -4,7 +4,7 @@ These widgets run on other people's pages, so we take reports seriously.
 
 ## Reporting a problem
 
-Please report security problems privately through the contact page on CoinFinHub: https://www.coinfinhub.com/contact. Don't open a public issue for them.
+Please report security problems privately: on GitHub through this repository's Security tab ("Report a vulnerability"), or through the contact page on CoinFinHub: https://www.coinfinhub.com/contact. Don't open a public issue for them.
 
 Tell us what you found, how to reproduce it, and which version (tag) it affects. We'll confirm we've received it, keep you informed, and credit you in the release notes if you'd like.
 

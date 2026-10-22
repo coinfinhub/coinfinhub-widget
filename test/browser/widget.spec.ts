@@ -172,6 +172,18 @@ test('the builder previews every choice live and writes only what differs from t
   await expect(snippet).toContainText('<coinfinhub-ticker currency="INR" theme="dark" width="240" background="transparent" border="none">');
 });
 
+test('the demo ignores ?api= naming another host: no request there, and its cards keep their own data', async ({ page }) => {
+  const asked: string[] = [];
+  page.on('request', (request) => {
+    if (new URL(request.url()).hostname === 'attacker.example') asked.push(request.url());
+  });
+  await page.goto('/?api=https://attacker.example');
+  await expect(page.locator('#cfh-demo-source')).not.toContainText('attacker.example');
+  expect(await page.locator('[api*="attacker.example"]').count()).toBe(0);
+  await expect(page.locator('#cfh-demo-source')).not.toBeEmpty();
+  expect(asked).toEqual([]);
+});
+
 test('has no accessibility violations (axe), in light and dark', async ({ page }) => {
   await page.goto(`/?api=${API}`);
   await showAll(page);

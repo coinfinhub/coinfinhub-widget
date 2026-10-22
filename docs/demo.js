@@ -4,12 +4,24 @@
 //   ?api=http://127.0.0.1:4174           every widget uses that API (the browser tests' mock)
 //   ?api=https://widgets.coinfinhub.com  every widget uses the live endpoint, sample states included
 //
+// Any other host is ignored: a link to this page can't make its cards show another host's names and prices.
 // This module runs before the widgets' script, so the sample answers are in place before any widget asks.
 import { answer } from './mock.js';
 
 const SAMPLE = 'https://sample.invalid';
 const LIVE = 'https://widgets.coinfinhub.com';
-const api = new URLSearchParams(location.search).get('api')?.replace(/\/+$/, '');
+/** The origin ?api= names, if it is the live endpoint or one on this machine; otherwise null. */
+const allowed = (value) => {
+  try {
+    const url = new URL(value);
+    const local = ['localhost', '127.0.0.1'].includes(url.hostname) && ['http:', 'https:'].includes(url.protocol);
+    return url.origin === LIVE || local ? url.origin : null;
+  } catch {
+    return null;
+  }
+};
+const asked = new URLSearchParams(location.search).get('api');
+const api = asked ? allowed(asked) : null;
 
 // Sample mode: requests to SAMPLE are answered in the page from the fixtures; anything else goes out as usual.
 const realFetch = window.fetch.bind(window);
