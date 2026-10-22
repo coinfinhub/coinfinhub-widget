@@ -161,6 +161,10 @@ No `style-src` change and no `'unsafe-inline'` are needed: the styles come as a 
 
 The widgets read their own endpoint on widgets.coinfinhub.com. It belongs to the widgets: it is **not a public API**, it is rate-limited, and the Terms allow calling it only through the widgets. For a data API, [contact CoinFinHub](https://www.coinfinhub.com/contact).
 
+## Make it yours
+
+The code is open source under the MIT licence. Use the widgets as they are, or fork this repo and change anything: the layout, the colours, the fonts, what each widget shows. The one condition for showing CoinFinHub's prices (the [CoinFinHub Terms](https://www.coinfinhub.com/terms#cfh-doc-widget)): a clear, visible "Powered by CoinFinHub" link beside them. A fork still asks `widgets.coinfinhub.com` for the prices, within the same rate limits; `npm run build` makes your own `dist/coinfinhub-widget.js` (see [Development](#development)).
+
 ## Hosting the script yourself
 
 Copy `dist/coinfinhub-widget.js` from a release tag to your site and load it from there:
