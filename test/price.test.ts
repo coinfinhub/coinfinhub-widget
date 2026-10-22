@@ -64,7 +64,7 @@ describe('states', () => {
     expect(link(element).href).toBe('https://www.coinfinhub.com/price/bitcoin');
     expect(link(element).textContent).toBe('Powered by CoinFinHub');
     expect(link(element).target).toBe('_blank');
-    expect(link(element).rel).toBe('nofollow noopener');
+    expect(link(element).rel).toBe('noopener');
   });
 
   it('shows the coin: logo, name, symbol, price and "▼ −0.01% 24h"', async () => {

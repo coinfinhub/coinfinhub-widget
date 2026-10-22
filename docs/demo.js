@@ -284,7 +284,7 @@ function update() {
   const href = coin ? `https://www.coinfinhub.com/price/${coin}` : 'https://www.coinfinhub.com/';
   const [script] = snippet.textContent.split('\n');
   const written = attributes.map(([name, value]) => ` ${name}="${value}"`).join('');
-  snippet.textContent = `${script}\n<${tag}${written}><a href="${href}" target="_blank" rel="nofollow noopener">CoinFinHub</a></${tag}>`;
+  snippet.textContent = `${script}\n<${tag}${written}><a href="${href}" target="_blank" rel="noopener">CoinFinHub</a></${tag}>`;
 }
 
 form.addEventListener('input', (event) => {

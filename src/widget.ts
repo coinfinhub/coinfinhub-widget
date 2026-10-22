@@ -137,8 +137,9 @@ export abstract class Widget extends HTMLElement {
     svg(strokes, 'rect', { x: '217', y: '229', width: '153.5', height: '35', fill: '#e1af40', stroke: 'none' });
     svg(strokes, 'path', { d: 'M229.3 248a70.7 70.7 0 1 0 8.3 99.2' });
     this.#link.target = '_blank';
-    // No noreferrer: the referrer is how CoinFinHub sees which sites send visitors.
-    this.#link.rel = 'nofollow noopener';
+    // A plain, branded credit, as other price widgets give. No noreferrer: the referrer is how CoinFinHub sees which
+    // sites send visitors.
+    this.#link.rel = 'noopener';
   }
 
   /** What to ask for: slugs, or N for the top N. By default the coin attribute's slug; none when it is missing. */

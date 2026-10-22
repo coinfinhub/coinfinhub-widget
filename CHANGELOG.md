@@ -4,7 +4,7 @@ All notable changes to the widgets. Versions follow [semantic versioning](https:
 
 ## 1.0.0 (unreleased)
 
-The first public release: four widgets in one script, `dist/coinfinhub-widget.js`, served from `https://cdn.coinfinhub.com/widgets/1.0.0/` (also as the latest 1.x at `/widgets/1/`, and mirrored by jsDelivr from this tag), reading the widgets' own endpoint, `https://widgets.coinfinhub.com/v1/coins`.
+The first public release: four widgets in one script, `dist/coinfinhub-widget.js`, served as the latest 1.x from `https://cdn.coinfinhub.com/widgets/1/` (the quick start's address) and as this version from `/widgets/1.0.0/` (mirrored by jsDelivr from this tag), reading the widgets' own endpoint, `https://widgets.coinfinhub.com/v1/coins`.
 
 - `<coinfinhub-price coin="…" chart="7d">`: a coin's logo, name, symbol, price and 24h change, with an optional 7-day line drawn as SVG and coloured by the week.
 - `<coinfinhub-list coins="…" | top="…" layout="rows|strip">`: rows of coins, or a headline strip of cells side by side that wraps on narrow screens. Coins CoinFinHub doesn't know are left out.

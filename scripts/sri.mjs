@@ -1,26 +1,29 @@
-// Prints the embed snippet's SRI hash for dist/coinfinhub-widget.js. With --check, fails unless the snippets in
-// README.md and docs/index.html load the package version from cdn.coinfinhub.com and every integrity hash in them
-// is this one, so a release tag's snippets always match the file cdn.coinfinhub.com/widgets/{version}/ serves
-// and jsDelivr mirrors from that tag.
+// Prints the embed snippet's SRI hash for dist/coinfinhub-widget.js. With --check, fails unless README.md and
+// docs/index.html load the latest of the package's major version from cdn.coinfinhub.com (the default snippet, no
+// hash), README.md also pins the package version, and every integrity hash in them is this one, so a release tag's
+// pinned snippets always match the file cdn.coinfinhub.com/widgets/{version}/ serves and jsDelivr mirrors from that tag.
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url));
 const pkg = JSON.parse(await read('package.json'));
 const integrity = `sha384-${createHash('sha384').update(await read('dist/coinfinhub-widget.js')).digest('base64')}`;
-const src = `https://cdn.coinfinhub.com/widgets/${pkg.version}/coinfinhub-widget.js`;
+const src = (version) => `https://cdn.coinfinhub.com/widgets/${version}/coinfinhub-widget.js`;
+const pinned = src(pkg.version);
+const latest = src(pkg.version.split('.')[0]);
 
 if (!process.argv.includes('--check')) {
-  console.log(`src="${src}"\nintegrity="${integrity}"`);
+  console.log(`src="${pinned}"\nintegrity="${integrity}"`);
 } else {
   const problems = [];
-  for (const path of ['README.md', 'docs/index.html']) {
+  for (const [path, pins] of [['README.md', true], ['docs/index.html', false]]) {
     const text = String(await read(path));
-    if (!text.includes(`src="${src}"`)) problems.push(`${path}: the snippet should load ${src}`);
+    if (!text.includes(`src="${latest}"`)) problems.push(`${path}: the default snippet should load ${latest}`);
+    if (pins && !text.includes(`src="${pinned}"`)) problems.push(`${path}: the pinned snippet should load ${pinned}`);
     // The mirror's snippet too: every integrity attribute must be this file's.
     const hashes = [...text.matchAll(/integrity="([^"]*)"/g)].map(([, hash]) => hash);
-    if (!hashes.length || hashes.some((hash) => hash !== integrity)) {
-      problems.push(`${path}: every snippet should carry integrity="${integrity}"`);
+    if ((pins && !hashes.length) || hashes.some((hash) => hash !== integrity)) {
+      problems.push(`${path}: every pinned snippet should carry integrity="${integrity}"`);
     }
   }
   if (problems.length) {

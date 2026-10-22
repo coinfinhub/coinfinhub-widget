@@ -15,52 +15,53 @@ Four small widgets that show coin prices from [CoinFinHub](https://www.coinfinhu
 Add the script once per page, however many widgets it has:
 
 ```html
-<script type="module" src="https://cdn.coinfinhub.com/widgets/1.0.0/coinfinhub-widget.js" integrity="sha384-duGQV9L9RY00ppU6fLyKtCC44RGulk3cacYGqE46gfJNHhwn2dGUt6EzF0EHu7qt" crossorigin="anonymous"></script>
+<script type="module" src="https://cdn.coinfinhub.com/widgets/1/coinfinhub-widget.js" crossorigin="anonymous"></script>
 ```
+
+This is the latest 1.x: fixes and additions within version 1 reach your page without editing it. To pin one exact file instead, see [other addresses](#other-addresses-for-the-script).
 
 Then put a widget where it should appear. Each one carries a plain link inside it, which shows instead when JavaScript is off or the browser is older than the ones below.
 
 **Price card:** one coin's price and its 24-hour change, with the last 7 days as a line if you ask for it.
 
 ```html
-<coinfinhub-price coin="bitcoin" chart="7d"><a href="https://www.coinfinhub.com/price/bitcoin" target="_blank" rel="nofollow noopener">CoinFinHub</a></coinfinhub-price>
+<coinfinhub-price coin="bitcoin" chart="7d"><a href="https://www.coinfinhub.com/price/bitcoin" target="_blank" rel="noopener">CoinFinHub</a></coinfinhub-price>
 ```
 
 **List:** the top coins, or the ones you name, in rows. `layout="strip"` puts them side by side as a headline strip, which wraps on narrow screens.
 
 ```html
-<coinfinhub-list top="5"><a href="https://www.coinfinhub.com/" target="_blank" rel="nofollow noopener">CoinFinHub</a></coinfinhub-list>
-<coinfinhub-list coins="bitcoin,ethereum,solana" layout="strip"><a href="https://www.coinfinhub.com/" target="_blank" rel="nofollow noopener">CoinFinHub</a></coinfinhub-list>
+<coinfinhub-list top="5"><a href="https://www.coinfinhub.com/" target="_blank" rel="noopener">CoinFinHub</a></coinfinhub-list>
+<coinfinhub-list coins="bitcoin,ethereum,solana" layout="strip"><a href="https://www.coinfinhub.com/" target="_blank" rel="noopener">CoinFinHub</a></coinfinhub-list>
 ```
 
 **Ticker:** a strip that moves sideways in a loop (the top 10 unless you say otherwise).
 
 ```html
-<coinfinhub-ticker top="10"><a href="https://www.coinfinhub.com/" target="_blank" rel="nofollow noopener">CoinFinHub</a></coinfinhub-ticker>
+<coinfinhub-ticker top="10"><a href="https://www.coinfinhub.com/" target="_blank" rel="noopener">CoinFinHub</a></coinfinhub-ticker>
 ```
 
 **Converter:** "1 BTC = $86,091.97", with an amount of the coin and its value, both editable, and a currency picker.
 
 ```html
-<coinfinhub-converter coin="bitcoin" currency="EUR"><a href="https://www.coinfinhub.com/price/bitcoin" target="_blank" rel="nofollow noopener">CoinFinHub</a></coinfinhub-converter>
+<coinfinhub-converter coin="bitcoin" currency="EUR"><a href="https://www.coinfinhub.com/price/bitcoin" target="_blank" rel="noopener">CoinFinHub</a></coinfinhub-converter>
 ```
 
 - **Which coin:** the end of its page address on CoinFinHub, such as `bitcoin` in `https://www.coinfinhub.com/price/bitcoin`. Search for the coin on coinfinhub.com to find it.
-- **Why the `integrity` hash:** it pins the exact file. If the file at that address ever changed, the browser would refuse to run it.
 - The [demo](https://coinfinhub.github.io/coinfinhub-widget/) has a builder that writes the snippet for you: pick the widget and coins, the currency, a width, the theme, a transparent background or no outline, and see it live.
 
 ### Other addresses for the script
 
+- **One exact version, with an `integrity` hash.** The hash pins the file: if the file at that address ever changed, the browser would refuse to run it. Your page then doesn't take fixes by itself; to take one, change the version and the hash to the new release's:
+
+  ```html
+  <script type="module" src="https://cdn.coinfinhub.com/widgets/1.0.0/coinfinhub-widget.js" integrity="sha384-pQCKXy/X9/2BXLpMqSkkvkGXJeja4rME9pQSc3iUOpEpNDorXbJw3x8AFn5KRZ+7" crossorigin="anonymous"></script>
+  ```
+
 - **A mirror on jsDelivr**, the same file built from this repo's release tag, with the same hash:
 
   ```html
-  <script type="module" src="https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@1.0.0/dist/coinfinhub-widget.js" integrity="sha384-duGQV9L9RY00ppU6fLyKtCC44RGulk3cacYGqE46gfJNHhwn2dGUt6EzF0EHu7qt" crossorigin="anonymous"></script>
-  ```
-
-- **The latest 1.x**, which picks up fixes and additions within version 1 without editing your page. It can't carry an `integrity` hash, since the file behind it changes:
-
-  ```html
-  <script type="module" src="https://cdn.coinfinhub.com/widgets/1/coinfinhub-widget.js" crossorigin="anonymous"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/gh/coinfinhub/coinfinhub-widget@1.0.0/dist/coinfinhub-widget.js" integrity="sha384-pQCKXy/X9/2BXLpMqSkkvkGXJeja4rME9pQSc3iUOpEpNDorXbJw3x8AFn5KRZ+7" crossorigin="anonymous"></script>
   ```
 
 ## Attributes
@@ -148,7 +149,7 @@ No `style-src` change and no `'unsafe-inline'` are needed: the styles come as a 
 - CoinFinHub's servers log those requests (IP address, time, browser, and the page that asked) for 14 days, for security and rate limits. In memory they count only which sites show the widgets. See the [CoinFinHub privacy policy](https://www.coinfinhub.com/privacy).
 - No cookies are sent or set, nothing is stored on the visitor's device, and there is no fingerprinting or analytics on your page.
 - Depending on where you are, you may need to name these hosts in your own privacy notice. Loading the script from jsDelivr adds it as a host of its own.
-- The "Powered by CoinFinHub" link has `rel="nofollow noopener"` and opens in a new tab. It keeps the browser's normal referrer, which is how CoinFinHub sees which sites send visitors.
+- The "Powered by CoinFinHub" link is a plain link (`rel="noopener"`) and opens in a new tab. It keeps the browser's normal referrer, which is how CoinFinHub sees which sites send visitors.
 
 ## Data terms
 
@@ -172,7 +173,7 @@ The widgets still ask `widgets.coinfinhub.com` for prices and load the logos fro
 
 ## Releases and security
 
-Releases are git tags (`v1.0.0`), served from `cdn.coinfinhub.com/widgets/{version}/` and announced as [GitHub releases](https://github.com/coinfinhub/coinfinhub-widget/releases) and in the [changelog](CHANGELOG.md). A pinned version never changes, so to take a fix, update the version and the `integrity` hash in your snippet, or load the latest 1.x without a hash. To report a security problem, see [SECURITY.md](SECURITY.md).
+Releases are git tags (`v1.0.0`), served from `cdn.coinfinhub.com/widgets/{version}/` and announced as [GitHub releases](https://github.com/coinfinhub/coinfinhub-widget/releases) and in the [changelog](CHANGELOG.md). The quick start's `/widgets/1/` follows the latest 1.x within about an hour. A pinned version never changes, so to take a fix there, update the version and the `integrity` hash in your snippet. To report a security problem, see [SECURITY.md](SECURITY.md).
 
 ## Development
 

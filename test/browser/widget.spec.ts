@@ -98,7 +98,9 @@ test('the builder previews every choice live and writes only what differs from t
   // Widgets only ask while on screen.
   await preview.scrollIntoViewIfNeeded();
   await expect(preview.locator('.cfh-price')).toHaveText(BITCOIN);
-  await expect(snippet).toContainText('integrity="sha384-');
+  // The latest 1.x, which can't carry a hash: the file behind it changes.
+  await expect(snippet).toContainText('src="https://cdn.coinfinhub.com/widgets/1/coinfinhub-widget.js"');
+  await expect(snippet).not.toContainText('integrity=');
   await expect(snippet).toContainText('<coinfinhub-price coin="bitcoin"><a href="https://www.coinfinhub.com/price/bitcoin"');
 
   // The coin box: a combobox over the top coins, filtered as you type, used with the keyboard.
@@ -459,7 +461,7 @@ test('shows hostile text as text and keeps the link on CoinFinHub', async ({ pag
   const link = widget.locator('.cfh-link');
   await expect(link).toHaveAttribute('href', 'https://www.coinfinhub.com/price/hostile');
   await expect(link).toHaveAttribute('target', '_blank');
-  await expect(link).toHaveAttribute('rel', 'nofollow noopener');
+  await expect(link).toHaveAttribute('rel', 'noopener');
   expect(errors).toEqual([]);
 });
 
